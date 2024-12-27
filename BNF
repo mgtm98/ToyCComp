@@ -1,0 +1,64 @@
+program: statements
+
+statements: statement
+          | statement statements
+          ;
+
+statement: ';'
+         | 'print' ( expression ) ';'
+         | 'int' identifier ';'
+         | identifier '=' expr ';'
+         | if_statement
+         | while_statement
+         | do_while_statement
+         | for_statement
+         | 'break' ';'
+         ;
+
+if_statement: 'if' '(' expression ')' statement_block
+            | 'if' '(' expression ')' statement_block 'else' statement_block
+            | 'if' '(' expression ')' statement_block 'else' if_statement
+
+statement_block: statement
+               | '{' statements '}'
+               ;
+
+while_statement: 'while' '(' expression ')' statement_block
+
+do_while_statement: 'do' statement_block 'while' '(' expression ')' ';'
+
+for_statement: 'for' '(' statement expression ';' statement ')' statement_block
+
+expression: comparison_expression
+          ;
+
+comparison_expression: additive_expression
+                     | additive_expression '<' additive_expression
+                     | additive_expression '>' additive_expression
+                     | additive_expression '<=' additive_expression
+                     | additive_expression '>=' additive_expression
+                     | additive_expression '==' additive_expression
+                     | additive_expression '!=' additive_expression
+                     ;
+
+additive_expression:
+      multiplicative_expression
+    | additive_expression '+' multiplicative_expression
+    | additive_expression '-' multiplicative_expression
+    ;
+
+multiplicative_expression: val
+                         | val '*' multiplicative_expression
+                         | val '/' multiplicative_expression
+                         ;
+
+val: number
+   | identifier
+   | '(' expression ')'
+   ;
+
+number: INTLIT
+      ;
+
+identifier: IDENTIFIER
+          ;
