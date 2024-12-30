@@ -13,8 +13,9 @@ static __uint8_t token_buffer_top = 0;
 static __uint8_t token_buffer_last = 1;
 static __uint8_t token_buffer_size = 0;
 
-static void match_and_cache_token(Scanner_t *scanner, TokenType_e what);
+static bool match_and_cache_token(Scanner_t *scanner, TokenType_e what);
 static bool scan_token(Scanner_t *scanner, Token_t *tok);
+static bool match_token(Scanner_t *scanner, TokenType_e what);
 
 static ASTNode_t *decl_function(Scanner_t *scanner);
 
@@ -22,7 +23,7 @@ static ASTNode_t *decl_function(Scanner_t *scanner);
 //                  Token Buffer Operations
 // ============================================================
 
-static void match_and_cache_token(Scanner_t *scanner, TokenType_e what)
+static bool match_and_cache_token(Scanner_t *scanner, TokenType_e what)
 {
     Token_t tok;
     if (token_buffer_size == TOKEN_BUFFER_MAX_SIZE)
@@ -31,9 +32,21 @@ static void match_and_cache_token(Scanner_t *scanner, TokenType_e what)
         exit(1);
     }
     scanner_scan(scanner, &tok);
+
+    if (tok.type != what)
+    {
+        debug_print(
+            SEV_ERROR,
+            "line %d: Expected token: %s, found token: %s",
+            scanner->current_line_number,
+            TokTypeToString(what),
+            TokToString(tok));
+        exit(1);
+    }
     scanner_copy_tok(&tok_buffer[token_buffer_last - 1], &tok);
     token_buffer_last = (token_buffer_last + 1) % TOKEN_BUFFER_MAX_SIZE;
     token_buffer_size++;
+    return true;
 }
 
 static bool match_token(Scanner_t *scanner, TokenType_e what)
@@ -51,7 +64,7 @@ static bool match_token(Scanner_t *scanner, TokenType_e what)
             TokToString(tok_buffer[token_buffer_top]));
         exit(1);
     }
-    token_buffer_top = (token_buffer_top - 1) % TOKEN_BUFFER_MAX_SIZE;
+    token_buffer_top = (token_buffer_top + 1) % TOKEN_BUFFER_MAX_SIZE;
     token_buffer_size--;
     return true;
 }
@@ -75,8 +88,32 @@ ASTNode_t *decl_declarations(Scanner_t *scanner)
 {
     match_and_cache_token(scanner, TOK_VOID);
     match_and_cache_token(scanner, TOK_ID);
-    match_and_cache_token(scanner, TOK_LBRACE);
-    return decl_function(scanner);
+    match_and_cache_token(scanner, TOK_LPAREN);
+
+    ASTNode_t *head = decl_function(scanner);
+    ASTNode_t *root;
+    ASTNode_t *current;
+    Token_t tok;
+
+    root = head;
+
+    while (true)
+    {
+        scanner_peek(scanner, &tok);
+        if (tok.type == TOK_EOF)
+        {
+            break;
+        }
+
+        match_and_cache_token(scanner, TOK_VOID);
+        match_and_cache_token(scanner, TOK_ID);
+        match_and_cache_token(scanner, TOK_LPAREN);
+        current = decl_function(scanner);
+        head->next = current;
+        head = current;
+    }
+
+    return root;
 }
 
 static ASTNode_t *decl_function(Scanner_t *scanner)

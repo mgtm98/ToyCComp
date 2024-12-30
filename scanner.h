@@ -93,6 +93,7 @@ static char *__token_names[] = {
     "TOK_INTLIT",
     "TOK_ID",
     "TOK_INT",
+    "TOK_VOID",
     "TOK_IF",
     "TOK_ELSE",
     "TOK_WHILE",

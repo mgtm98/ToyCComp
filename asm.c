@@ -226,7 +226,7 @@ void asm_generate_function_epilogue(CodeGenerator_t *gen)
 {
     fputs("\tmov eax, 0\n", gen->file);
     fputs("\tpop rbp\n", gen->file);
-    fputs("\tret\n", gen->file);
+    fputs("\tret\n\n", gen->file);
 }
 
 void asm_print(CodeGenerator_t *gen, Register r)

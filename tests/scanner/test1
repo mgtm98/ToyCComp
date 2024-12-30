@@ -1,3 +1,9 @@
+void add()
+{
+    int k;
+    k = k + 1;
+}
+
 void main()
 {
     int i;

@@ -44,6 +44,7 @@ static Register generate_comparison(CodeGenerator_t *gen, ASTNode_t *root);
 static Register generate_arithmetic(CodeGenerator_t *gen, ASTNode_t *root);
 
 static void generate_declerations(CodeGenerator_t *gen, ASTNode_t *root);
+static void generate_decleration(CodeGenerator_t *gen, ASTNode_t *root);
 static void generate_func(CodeGenerator_t *gen, ASTNode_t *root);
 //////////////////////////////
 //////////////////////////////
@@ -290,6 +291,15 @@ static void generate_stmt_assign(CodeGenerator_t *gen, ASTNode_t *root)
 }
 
 static void generate_declerations(CodeGenerator_t *gen, ASTNode_t *root)
+{
+    while (root)
+    {
+        generate_decleration(gen, root);
+        root = root->next;
+    }
+}
+
+static void generate_decleration(CodeGenerator_t *gen, ASTNode_t *root)
 {
     switch (root->type)
     {

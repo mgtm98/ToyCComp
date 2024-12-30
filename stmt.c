@@ -1,15 +1,3 @@
-/**
- * @file stmt.c
- * @brief Implementation of statement parsing functions for the compiler.
- *
- * This file contains functions for parsing statements in the source code and
- * constructing an Abstract Syntax Tree (AST) representation. It supports parsing
- * variable declarations, assignments, `if` statements, blocks, and `print` statements.
- *
- * @project ToyCComp
- * @date 2024-12-24
- */
-
 #include "stmt.h"
 #include "debug.h"
 #include "string.h"
@@ -28,15 +16,6 @@ static ASTNode_t *stmt_do_while(Scanner_t *scanner);
 static ASTNode_t *stmt_for(Scanner_t *scanner);
 static ASTNode_t *stmt_break(Scanner_t *scanner);
 
-/**
- * @brief Parses a sequence of statements.
- *
- * Constructs an AST for a sequence of statements until the end
- * of the source or a closing brace is encountered.
- *
- * @param scanner Pointer to the scanner context.
- * @return Pointer to the root AST node representing the sequence of statements.
- */
 static ASTNode_t *stmt_statements(Scanner_t *scanner)
 {
     Token_t tok;
@@ -61,15 +40,6 @@ static ASTNode_t *stmt_statements(Scanner_t *scanner)
     return root;
 }
 
-/**
- * @brief Parses a single statement.
- *
- * Determines the type of statement based on the next token and
- * delegates parsing to the appropriate handler.
- *
- * @param scanner Pointer to the scanner context.
- * @return Pointer to the AST node representing the parsed statement.
- */
 static ASTNode_t *stmt_statement(Scanner_t *scanner)
 {
     Token_t t;
@@ -108,12 +78,6 @@ static ASTNode_t *stmt_statement(Scanner_t *scanner)
     }
 }
 
-/**
- * @brief Parses a `print` statement.
- *
- * @param scanner Pointer to the scanner context.
- * @return Pointer to the AST node representing the `print` statement.
- */
 static ASTNode_t *stmt_print(Scanner_t *scanner)
 {
     scanner_match(scanner, TOK_ID);
@@ -124,12 +88,6 @@ static ASTNode_t *stmt_print(Scanner_t *scanner)
     return ast_create_node(AST_PRINT, expr, NULL, 0);
 }
 
-/**
- * @brief Parses a variable declaration statement.
- *
- * @param scanner Pointer to the scanner context.
- * @return Pointer to the AST node representing the variable declaration.
- */
 static ASTNode_t *stmt_var_decl(Scanner_t *scanner)
 {
     Token_t tok;
@@ -151,12 +109,6 @@ static ASTNode_t *stmt_var_decl(Scanner_t *scanner)
         symbol_index);
 }
 
-/**
- * @brief Parses an assignment statement.
- *
- * @param scanner Pointer to the scanner context.
- * @return Pointer to the AST node representing the assignment.
- */
 static ASTNode_t *stmt_assign(Scanner_t *scanner)
 {
     Token_t tok;
@@ -190,15 +142,6 @@ static ASTNode_t *stmt_assign(Scanner_t *scanner)
         0);
 }
 
-/**
- * @brief Parses an `if` statement.
- *
- * Handles `if` statements, including optional `else` blocks
- * and nested `if` statements.
- *
- * @param scanner Pointer to the scanner context.
- * @return Pointer to the AST node representing the `if` statement.
- */
 static ASTNode_t *stmt_if(Scanner_t *scanner)
 {
     Token_t tok;
@@ -247,23 +190,6 @@ static ASTNode_t *stmt_if(Scanner_t *scanner)
         0);
 }
 
-/**
- * @brief Parses a `while` statement and constructs its abstract syntax tree (AST) representation.
- *
- * Processes tokens from the scanner to parse a `while` statement,
- * including its condition and body, and generates an AST node representing the `while` construct.
- *
- * @param scanner A pointer to the `Scanner_t` structure used for tokenizing the input source code.
- * @return ASTNode_t* A pointer to the AST node representing the `while` statement.
- *                    - The left child node contains the loop condition.
- *                    - The right child node contains the loop body.
- *
- * @details
- * - The function expects the `while` statement to follow this syntax:
- *   `while (<expression>) <block>`
- * - An AST node of type `AST_WHILE` is created with the condition as the left child
- *   and the loop body as the right child.
- */
 static ASTNode_t *stmt_while(Scanner_t *scanner)
 {
     Token_t tok;
@@ -282,23 +208,6 @@ static ASTNode_t *stmt_while(Scanner_t *scanner)
         0);
 }
 
-/**
- * @brief Parses a `do-while` statement and constructs its abstract syntax tree (AST) representation.
- *
- * Processes tokens from the scanner to parse a `do-while` statement,
- * including its body and condition, and generates an AST node representing the `do-while` construct.
- *
- * @param scanner A pointer to the `Scanner_t` structure used for tokenizing the input source code.
- * @return ASTNode_t* A pointer to the AST node representing the `do-while` statement.
- *                    - The right child node contains the loop body.
- *                    - The left child node contains the loop condition.
- *
- * @details
- * - The function expects the `do-while` statement to follow this syntax:
- *   `do { <block> } while (<expression>);`
- * - An AST node of type `AST_DO_WHILE` is created with the condition as the left child
- *   and the loop body as the right child.
- */
 static ASTNode_t *stmt_do_while(Scanner_t *scanner)
 {
     Token_t tok;
@@ -319,25 +228,6 @@ static ASTNode_t *stmt_do_while(Scanner_t *scanner)
         0);
 }
 
-/**
- * @brief Parses a `for` statement and constructs its abstract syntax tree (AST) representation.
- *
- * This function processes tokens from the scanner to parse a `for` loop, including its
- * initialization, condition, update expressions, and body, and generates an AST node
- * representing the `for` construct.
- *
- * @param scanner A pointer to the `Scanner_t` structure used for tokenizing the input source code.
- * @return ASTNode_t* A pointer to the AST node representing the `for` statement.
- *                    - The left child node (`pre_post`) contains:
- *                      1. The initialization statement or expression.
- *                      2. The condition expression (linked via `next`).
- *                      3. The update expression (linked via `next->next`).
- *                    - The right child node contains the loop body as a block.
- *
- * @details
- * - The function expects the `for` statement to follow this syntax:
- *   `for (<init>; <condition>; <update>) <block>`
- */
 static ASTNode_t *stmt_for(Scanner_t *scanner)
 {
     Token_t tok;
@@ -359,17 +249,6 @@ static ASTNode_t *stmt_for(Scanner_t *scanner)
         0);
 }
 
-/**
- * @brief Parses a `break` statement and constructs its abstract syntax tree (AST) representation.
- *
- * Processes tokens from the scanner to parse a `break` statement and generates
- * a leaf AST node representing the `break` construct.
- *
- * @param scanner A pointer to the `Scanner_t` structure used for tokenizing the input source code.
- * @return ASTNode_t* A pointer to the AST leaf node representing the `break` statement.
- *                    - The node is of type `AST_BREAK`.
- *                    - The `value` field of the node is set to 0.
- */
 static ASTNode_t *stmt_break(Scanner_t *scanner)
 {
     scanner_match(scanner, TOK_BREAK);
@@ -377,12 +256,6 @@ static ASTNode_t *stmt_break(Scanner_t *scanner)
     return ast_create_leaf_node(AST_BREAK, 0);
 }
 
-/**
- * @brief Parses a block of statements enclosed by braces.
- *
- * @param scanner Pointer to the scanner context.
- * @return Pointer to the AST node representing the block.
- */
 ASTNode_t *stmt_block(Scanner_t *scanner)
 {
     Token_t tok;
