@@ -40,7 +40,9 @@ typedef enum
 
     TOK_INTLIT, /** Integer literal. */
     TOK_ID,     /** Identifier. */
-    TOK_INT,    /** 'int' keyword. */
+
+    TOK_INT,  /** 'int' keyword. */
+    TOK_VOID, /** 'void' keyword. */
 
     TOK_IF,    /** 'if' keyword. */
     TOK_ELSE,  /** 'else' keyword. */
@@ -148,39 +150,62 @@ typedef struct
 
 /**
  * @brief Initializes the scanner.
- * @param file_path Path to the source file.
- * @return Pointer to the initialized scanner context.
+ *
+ * This function allocates and initializes a `Scanner_t` object, opening the
+ * specified file for reading.
+ *
+ * @param file_path Pointer to the string representing the file path.
+ * @return Pointer to the initialized scanner context, or `NULL` if the file does not exist.
  */
 Scanner_t *scanner_init(char *file_path);
 
 /**
  * @brief Scans the next token from the source code.
+ *
+ * This function identifies and classifies the next token in the source stream,
+ * handling keywords, literals, operators, and other syntactic elements.
+ *
  * @param scanner Pointer to the scanner context.
- * @param tok Pointer to the token to store the result.
- * @return `true` if a token is scanned, `false` if EOF is reached.
+ * @param tok Pointer to the token object to store the scanned token.
+ * @return `true` if a token is successfully scanned, `false` if end of file (EOF) is reached.
  */
 bool scanner_scan(Scanner_t *scanner, Token_t *tok);
 
 /**
  * @brief Peeks at the next token without consuming it.
+ *
+ * Scans the next token and immediately puts it back into the
+ * stream, allowing non-destructive inspection of the token.
+ *
  * @param scanner Pointer to the scanner context.
- * @param tok Pointer to the token to store the peeked result.
+ * @param tok Pointer to the token object where the peeked token will be stored.
  */
 void scanner_peek(Scanner_t *scanner, Token_t *tok);
 
 /**
- * @brief Matches the next token against a specified type.
+ * @brief Matches the next token against a specific type.
+ *
+ * Scans the next token and checks if it matches the expected type.
+ * If the types match, the function returns `true`. Otherwise, an error is logged
+ * and the program terminates.
+ *
  * @param scanner Pointer to the scanner context.
- * @param what The expected token type.
- * @return `true` if the token matches, otherwise the program exits with an error.
+ * @param what The expected token type to match.
+ * @return `true` if the token matches the expected type; otherwise, the program exits.
  */
 bool scanner_match(Scanner_t *scanner, TokenType_e what);
 
 /**
  * @brief Puts a token back into the stream for reprocessing.
+ *
+ * Stores the specified token in the scanner's internal buffer,
+ * making it the next token to be processed.
+ *
  * @param scanner Pointer to the scanner context.
  * @param tok Pointer to the token to be put back.
  */
 void scanner_putback(Scanner_t *scanner, Token_t *tok);
+
+void scanner_copy_tok(Token_t *dest, Token_t *src);
 
 #endif

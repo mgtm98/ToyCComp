@@ -17,6 +17,7 @@
 #include "symtab.h"
 #include "expr.h"
 
+static ASTNode_t *stmt_statements(Scanner_t *scanner);
 static ASTNode_t *stmt_statement(Scanner_t *scanner);
 static ASTNode_t *stmt_print(Scanner_t *scanner);
 static ASTNode_t *stmt_var_decl(Scanner_t *scanner);
@@ -26,7 +27,6 @@ static ASTNode_t *stmt_while(Scanner_t *scanner);
 static ASTNode_t *stmt_do_while(Scanner_t *scanner);
 static ASTNode_t *stmt_for(Scanner_t *scanner);
 static ASTNode_t *stmt_break(Scanner_t *scanner);
-static ASTNode_t *stmt_block(Scanner_t *scanner);
 
 /**
  * @brief Parses a sequence of statements.
@@ -37,7 +37,7 @@ static ASTNode_t *stmt_block(Scanner_t *scanner);
  * @param scanner Pointer to the scanner context.
  * @return Pointer to the root AST node representing the sequence of statements.
  */
-ASTNode_t *stmt_statements(Scanner_t *scanner)
+static ASTNode_t *stmt_statements(Scanner_t *scanner)
 {
     Token_t tok;
     ASTNode_t *head = stmt_statement(scanner);
@@ -383,7 +383,7 @@ static ASTNode_t *stmt_break(Scanner_t *scanner)
  * @param scanner Pointer to the scanner context.
  * @return Pointer to the AST node representing the block.
  */
-static ASTNode_t *stmt_block(Scanner_t *scanner)
+ASTNode_t *stmt_block(Scanner_t *scanner)
 {
     Token_t tok;
     ASTNode_t *out;

@@ -17,11 +17,11 @@
  */
 
 /**
- * @brief Parses a sequence of statements.
+ * @brief Parses a block of statements enclosed by braces.
  *
  * @param scanner Pointer to the scanner context.
- * @return Pointer to the root AST node representing the sequence of statements.
+ * @return Pointer to the AST node representing the block.
  */
-ASTNode_t *stmt_statements(Scanner_t *scanner);
+ASTNode_t *stmt_block(Scanner_t *scanner);
 
 #endif

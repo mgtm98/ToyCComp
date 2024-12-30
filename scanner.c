@@ -47,7 +47,7 @@ static int chrpos(char *s, int c)
  * @param filename Pointer to the file path.
  * @return `true` if the file exists, `false` otherwise.
  */
-bool file_exists(const char *filename)
+static bool file_exists(const char *filename)
 {
     struct stat buffer;
     return (stat(filename, &buffer) == 0);
@@ -181,12 +181,13 @@ static TokenType_e check_keyword(char *id)
         TokenType_e token;
     } keyword_map[] = {
         {"break", TOK_BREAK},
+        {"do", TOK_DO},
         {"else", TOK_ELSE},
+        {"for", TOK_FOR},
         {"if", TOK_IF},
         {"int", TOK_INT},
-        {"while", TOK_WHILE},
-        {"do", TOK_DO},
-        {"for", TOK_FOR}};
+        {"void", TOK_VOID},
+        {"while", TOK_WHILE}};
 
     size_t id_length = strlen(id);
 
@@ -202,15 +203,6 @@ static TokenType_e check_keyword(char *id)
     return TOK_ID;
 }
 
-/**
- * @brief Initializes the scanner.
- *
- * This function allocates and initializes a `Scanner_t` object, opening the
- * specified file for reading.
- *
- * @param file_path Pointer to the string representing the file path.
- * @return Pointer to the initialized scanner context, or `NULL` if the file does not exist.
- */
 Scanner_t *scanner_init(char *file_path)
 {
     Scanner_t *scanner = (Scanner_t *)calloc(1, sizeof(Scanner_t));
@@ -228,16 +220,6 @@ Scanner_t *scanner_init(char *file_path)
     }
 }
 
-/**
- * @brief Scans the next token from the source code.
- *
- * This function identifies and classifies the next token in the source stream,
- * handling keywords, literals, operators, and other syntactic elements.
- *
- * @param scanner Pointer to the scanner context.
- * @param tok Pointer to the token object to store the scanned token.
- * @return `true` if a token is successfully scanned, `false` if end of file (EOF) is reached.
- */
 bool scanner_scan(Scanner_t *scanner, Token_t *tok)
 {
     if (scanner->putback_tok.type != TOK_EMPTY)
@@ -346,17 +328,6 @@ bool scanner_scan(Scanner_t *scanner, Token_t *tok)
     return true;
 }
 
-/**
- * @brief Matches the next token against a specific type.
- *
- * This function scans the next token and checks if it matches the expected type.
- * If the types match, the function returns `true`. Otherwise, an error is logged
- * and the program terminates.
- *
- * @param scanner Pointer to the scanner context.
- * @param what The expected token type to match.
- * @return `true` if the token matches the expected type; otherwise, the program exits.
- */
 bool scanner_match(Scanner_t *scanner, TokenType_e what)
 {
     Token_t t;
@@ -379,33 +350,20 @@ bool scanner_match(Scanner_t *scanner, TokenType_e what)
     return false;
 }
 
-/**
- * @brief Puts a token back into the stream for reprocessing.
- *
- * This function stores the specified token in the scanner's internal buffer,
- * making it the next token to be processed.
- *
- * @param scanner Pointer to the scanner context.
- * @param tok Pointer to the token to be put back.
- */
 void scanner_putback(Scanner_t *scanner, Token_t *tok)
 {
-    scanner->putback_tok.type = tok->type;
-    scanner->putback_tok.value = tok->value;
+    scanner_copy_tok(&scanner->putback_tok, tok);
     debug_print(SEV_DEBUG, "putback Token %s", TokToString(*tok));
 }
 
-/**
- * @brief Peeks at the next token without consuming it.
- *
- * This function scans the next token and immediately puts it back into the
- * stream, allowing non-destructive inspection of the token.
- *
- * @param scanner Pointer to the scanner context.
- * @param tok Pointer to the token object where the peeked token will be stored.
- */
 void scanner_peek(Scanner_t *scanner, Token_t *tok)
 {
     scanner_scan(scanner, tok);
     scanner_putback(scanner, tok);
+}
+
+void scanner_copy_tok(Token_t *dest, Token_t *src)
+{
+    dest->type = src->type;
+    dest->value = src->value;
 }

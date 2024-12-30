@@ -24,8 +24,10 @@ typedef enum
     AST_PRINT,
     AST_ASSIGN,
     AST_VAR,
-    AST_VAR_DECL,
     AST_DATATYPE,
+
+    AST_VAR_DECL,
+    AST_FUNC_DECL,
 
     AST_IF,
 
@@ -65,8 +67,9 @@ static char *__ast_type_names[] = {
     "AST_PRINT",
     "AST_ASSIGN",
     "AST_VAR",
-    "AST_VAR_DECL",
     "AST_DATATYPE",
+    "AST_VAR_DECL",
+    "AST_FUNC_DECL",
     "AST_IF",
     "AST_WHILE",
     "AST_DO_WHILE",

@@ -1,4 +1,14 @@
-program: statements
+program: function_declaration
+
+function_declaration: type_specifier identifier '(' ')' statement_block
+                    ;
+
+type_specifier: void 
+              ;           <--- add int here
+
+statement_block: statement
+               | '{' statements '}'
+               ;
 
 statements: statement
           | statement statements
@@ -18,10 +28,6 @@ statement: ';'
 if_statement: 'if' '(' expression ')' statement_block
             | 'if' '(' expression ')' statement_block 'else' statement_block
             | 'if' '(' expression ')' statement_block 'else' if_statement
-
-statement_block: statement
-               | '{' statements '}'
-               ;
 
 while_statement: 'while' '(' expression ')' statement_block
 
