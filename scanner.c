@@ -1,23 +1,3 @@
-/**
- * @file scanner.c
- * @brief Implementation of the lexical analysis (scanner) phase for the compiler.
- *
- * This file contains functions for scanning the input source code and generating
- * tokens. It processes the source file character by character, identifying keywords,
- * literals, operators, and other syntactic elements based on the language's grammar.
- *
- * Key functionalities:
- * - Matching tokens with specific types (`scanner_match`).
- * - Peeking at the next token without consuming it (`scanner_peek`).
- * - Putting back a token into the stream for reprocessing (`scanner_putback`).
- * - Tokenizing operators, keywords, literals, and identifiers.
- *
- * @author Mohamed Gamal
- * @project ToyCComp
- * @date 2024-12-24
- *
- */
-
 #include "scanner.h"
 #include "debug.h"
 
@@ -27,13 +7,6 @@
 #include <sys/stat.h>
 #include <string.h>
 
-/**
- * @brief Checks the position of a character in a string.
- *
- * @param s Pointer to the string.
- * @param c The character to locate.
- * @return The position of the character in the string, or -1 if not found.
- */
 static int chrpos(char *s, int c)
 {
     char *p;
@@ -41,26 +14,12 @@ static int chrpos(char *s, int c)
     return (p ? p - s : -1);
 }
 
-/**
- * @brief Checks if a file exists.
- *
- * @param filename Pointer to the file path.
- * @return `true` if the file exists, `false` otherwise.
- */
 static bool file_exists(const char *filename)
 {
     struct stat buffer;
     return (stat(filename, &buffer) == 0);
 }
 
-/**
- * @brief Skips whitespace characters in the source code.
- *
- * This function advances the scanner's position, skipping over whitespace and
- * updating the line and column numbers as necessary.
- *
- * @param scanner Pointer to the scanner context.
- */
 static void skip_ws(Scanner_t *scanner)
 {
     char out;
@@ -85,12 +44,6 @@ static void skip_ws(Scanner_t *scanner)
     scanner->putback_char = out;
 }
 
-/**
- * @brief Reads the next character from the source code.
- *
- * @param scanner Pointer to the scanner context.
- * @return The next character from the input stream.
- */
 static char next(Scanner_t *scanner)
 {
     char out;
@@ -107,12 +60,6 @@ static char next(Scanner_t *scanner)
     return out;
 }
 
-/**
- * @brief Scans an integer literal from the source code.
- *
- * @param scanner Pointer to the scanner context.
- * @return The integer value parsed from the input stream.
- */
 static int scan_number(Scanner_t *scanner)
 {
     int t;
@@ -137,12 +84,6 @@ static int scan_number(Scanner_t *scanner)
     return out;
 }
 
-/**
- * @brief Scans an identifier or keyword from the source code.
- *
- * @param scanner Pointer to the scanner context.
- * @return Pointer to the dynamically allocated string representing the identifier.
- */
 static char *scan_id(Scanner_t *scanner)
 {
     char c;
@@ -167,12 +108,6 @@ static char *scan_id(Scanner_t *scanner)
     return strdup(buffer);
 }
 
-/**
- * @brief Checks if an identifier matches a reserved keyword.
- *
- * @param id Pointer to the identifier string.
- * @return The token type corresponding to the keyword or `TOK_ID` if not a keyword.
- */
 static TokenType_e check_keyword(char *id)
 {
     static const struct
@@ -181,6 +116,7 @@ static TokenType_e check_keyword(char *id)
         TokenType_e token;
     } keyword_map[] = {
         {"break", TOK_BREAK},
+        {"char", TOK_CHAR},
         {"do", TOK_DO},
         {"else", TOK_ELSE},
         {"for", TOK_FOR},
@@ -208,6 +144,10 @@ Scanner_t *scanner_init(char *file_path)
     Scanner_t *scanner = (Scanner_t *)calloc(1, sizeof(Scanner_t));
     scanner->current_line_number = 1;
     scanner->current_col_number = 1;
+    scanner->buffer_head = 0;
+    scanner->buffer_tail = 1;
+    scanner->buffer_size = 0;
+
     if (file_exists(file_path))
     {
         scanner->file = fopen(file_path, "r");
@@ -220,13 +160,13 @@ Scanner_t *scanner_init(char *file_path)
     }
 }
 
-bool scanner_scan(Scanner_t *scanner, Token_t *tok)
+static bool __scanner_scan(Scanner_t *scanner, Token_t *tok, bool ignore_cache)
 {
-    if (scanner->putback_tok.type != TOK_EMPTY)
+    if (!ignore_cache && scanner->buffer_size > 0)
     {
-        tok->type = scanner->putback_tok.type;
-        tok->value = scanner->putback_tok.value;
-        scanner->putback_tok.type = TOK_EMPTY;
+        scanner_copy_tok(tok, &scanner->putback_tok_buffer[scanner->buffer_head]);
+        scanner->buffer_head = (scanner->buffer_head + 1) % MAX_PUTBACK_BUFFER_SIZE;
+        scanner->buffer_size--;
         debug_print(SEV_DEBUG, "Token %s", TokToString(*tok));
         return true;
     }
@@ -328,6 +268,11 @@ bool scanner_scan(Scanner_t *scanner, Token_t *tok)
     return true;
 }
 
+bool scanner_scan(Scanner_t *scanner, Token_t *tok)
+{
+    return __scanner_scan(scanner, tok, false);
+}
+
 bool scanner_match(Scanner_t *scanner, TokenType_e what)
 {
     Token_t t;
@@ -352,8 +297,9 @@ bool scanner_match(Scanner_t *scanner, TokenType_e what)
 
 void scanner_putback(Scanner_t *scanner, Token_t *tok)
 {
-    scanner_copy_tok(&scanner->putback_tok, tok);
-    debug_print(SEV_DEBUG, "putback Token %s", TokToString(*tok));
+    scanner_copy_tok(&scanner->putback_tok_buffer[scanner->buffer_tail - 1], tok);
+    scanner->buffer_tail = (scanner->buffer_tail + 1) % MAX_PUTBACK_BUFFER_SIZE;
+    scanner->buffer_size++;
 }
 
 void scanner_peek(Scanner_t *scanner, Token_t *tok)
@@ -366,4 +312,12 @@ void scanner_copy_tok(Token_t *dest, Token_t *src)
 {
     dest->type = src->type;
     dest->value = src->value;
+}
+
+TokenType_e scanner_cache_tok(Scanner_t *scanner)
+{
+    Token_t t;
+    __scanner_scan(scanner, &t, true);
+    scanner_putback(scanner, &t);
+    return t.type;
 }
