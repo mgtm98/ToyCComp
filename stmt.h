@@ -3,6 +3,7 @@
 
 #include "ast.h"
 #include "scanner.h"
+#include "decl.h"
 
 ASTNode_t *stmt_block(Scanner_t *scanner);
 

@@ -12,10 +12,13 @@
 typedef struct
 {
     char *symbol_name;
+    RegSize_e size;
 } bss_symbol;
 
 static int free_reg[GLOBAL_REG_COUNT] = {1, 1, 1, 1};
 static char *reg_list[GLOBAL_REG_COUNT] = {"r12", "r13", "r14", "r15"};
+static char *dreg_list[GLOBAL_REG_COUNT] = {"r12d", "r13d", "r14d", "r15d"};
+static char *wreg_list[GLOBAL_REG_COUNT] = {"r12w", "r13w", "r14w", "r15w"};
 static char *breg_list[GLOBAL_REG_COUNT] = {"r12b", "r13b", "r14b", "r15b"};
 
 static bss_symbol bss_symbols[MAX_BSS_SYMBOLS];
@@ -23,6 +26,16 @@ static int bss_symbol_count = 0;
 
 static bool print_used = false;
 static LabelId label_count = 0;
+
+static bss_symbol *get_bss_symbol(char *name)
+{
+    for (int i = 0; i < bss_symbol_count; i++)
+    {
+        if (strcmp(bss_symbols[i].symbol_name, name) == 0)
+            return &bss_symbols[i];
+    }
+    return NULL;
+}
 
 void asm_wrapup(CodeGenerator_t *gen)
 {
@@ -45,7 +58,14 @@ void asm_wrapup(CodeGenerator_t *gen)
         fprintf(gen->file, "section .bss\n");
         for (int i = 0; i < bss_symbol_count; i++)
         {
-            fprintf(gen->file, "\t%s resq 1\n", bss_symbols[i].symbol_name);
+            if (bss_symbols[i].size == SIZE_8bit)
+                fprintf(gen->file, "\t%s resb 1\n", bss_symbols[i].symbol_name);
+            else if (bss_symbols[i].size == SIZE_16bit)
+                fprintf(gen->file, "\t%s resw 1\n", bss_symbols[i].symbol_name);
+            else if (bss_symbols[i].size == SIZE_32bit)
+                fprintf(gen->file, "\t%s resd 1\n", bss_symbols[i].symbol_name);
+            else if (bss_symbols[i].size == SIZE_64bit)
+                fprintf(gen->file, "\t%s resq 1\n", bss_symbols[i].symbol_name);
         }
     }
 }
@@ -174,32 +194,58 @@ void asm_jmp_ne(CodeGenerator_t *gen, Register r1, int comp_val, LabelId label_n
     return asm_jmp_with_cond(gen, r1, comp_val, "jne", label_number);
 }
 
-void asm_add_global_var(CodeGenerator_t *gen, char *var_name)
+void asm_add_global_var(CodeGenerator_t *gen, char *var_name, RegSize_e size)
 {
-    for (int i = 0; i < bss_symbol_count; i++)
+    if (get_bss_symbol(var_name) != NULL)
     {
-        if (strcmp(bss_symbols[i].symbol_name, var_name) == 0)
-        {
-            debug_print(SEV_ERROR, "[ASM] Redefinition of an existing bss symbol %s", var_name);
-            exit(0);
-        }
+        debug_print(SEV_ERROR, "[ASM] Redefinition of an existing bss symbol %s", var_name);
+        exit(0);
     }
     debug_print(SEV_DEBUG, "Adding symbol %s in bss section", var_name);
-    bss_symbols[bss_symbol_count]
-        .symbol_name = strdup(var_name);
+    bss_symbols[bss_symbol_count].symbol_name = strdup(var_name);
+    bss_symbols[bss_symbol_count].size = size;
     bss_symbol_count++;
 }
 
 void asm_set_global_var(CodeGenerator_t *gen, char *var_name, Register r)
 {
-    fprintf(gen->file, "\tmov [%s], %s\n", var_name, reg_list[r]);
+    bss_symbol *symbol = get_bss_symbol(var_name);
+    if (symbol == NULL)
+    {
+        debug_print(SEV_ERROR, "[ASM] Symbol is not defined before!!");
+        exit(1);
+    }
+    if (symbol->size == SIZE_64bit)
+        fprintf(gen->file, "\tmov [%s], %s\n", var_name, reg_list[r]);
+    else if (symbol->size == SIZE_32bit)
+        fprintf(gen->file, "\tmov [%s], %s\n", var_name, dreg_list[r]);
+    else if (symbol->size == SIZE_16bit)
+        fprintf(gen->file, "\tmov [%s], %s\n", var_name, wreg_list[r]);
+    else if (symbol->size == SIZE_8bit)
+        fprintf(gen->file, "\tmov [%s], %s\n", var_name, breg_list[r]);
     free_register(r);
 }
 
 Register asm_get_global_var(CodeGenerator_t *gen, char *var_name)
 {
     Register r = allocate_register();
-    fprintf(gen->file, "\tmov %s, [%s]\n", reg_list[r], var_name);
+    bss_symbol *symbol = get_bss_symbol(var_name);
+    if (symbol == NULL)
+    {
+        debug_print(SEV_ERROR, "[ASM] Symbol is not defined before!!");
+        exit(1);
+    }
+    // TODO: Check we need this xor command ??!!
+    fprintf(gen->file, "\txor %s, %s\n", reg_list[r], reg_list[r]);
+
+    if (symbol->size == SIZE_64bit)
+        fprintf(gen->file, "\tmov %s, [%s]\n", reg_list[r], var_name);
+    else if (symbol->size == SIZE_32bit)
+        fprintf(gen->file, "\tmov %s, [%s]\n", dreg_list[r], var_name);
+    else if (symbol->size == SIZE_16bit)
+        fprintf(gen->file, "\tmov %s, [%s]\n", wreg_list[r], var_name);
+    else if (symbol->size == SIZE_8bit)
+        fprintf(gen->file, "\tmov %s, [%s]\n", breg_list[r], var_name);
     return r;
 }
 

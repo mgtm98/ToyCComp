@@ -37,6 +37,7 @@ typedef enum
     TOK_FOR,   /** 'for  kryword. */
 
     TOK_SEMICOLON, /** ';' token. */
+    TOK_COMMA,     /** ',' token. */
     TOK_LPAREN,    /** '(' token. */
     TOK_RPAREN,    /** ')' token. */
     TOK_LBRACE,    /** '{' token. */

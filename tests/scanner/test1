@@ -1,16 +1,11 @@
-void add()
-{
-    int k;
-    k = k + 1;
-}
-
 void main()
 {
-    int i;
-    i = 2;
-    for (; i < 5;;)
+    char cc = 0;
+    print(cc);
+    for (int i = 1; i < 300;;)
     {
-        print(i);
         i = i + 1;
+        cc = cc + 1;
+        print(cc);
     }
 }

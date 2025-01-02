@@ -6,15 +6,10 @@
 
 #define GLOBAL_SYMBOL_SIZE 255
 
-typedef struct
-{
-    char *sym_name;
-} Symbol_t;
-
 static Symbol_t global_symbols[GLOBAL_SYMBOL_SIZE];
 static int global_symbols_index = 0;
 
-int symtab_add_global_symbol(char *symbol_name)
+int symtab_add_global_symbol(char *symbol_name, SymbolType_e sym_type, Datatype_t *data_type)
 {
     int sym_info = symtab_find_global_symbol(symbol_name);
     if (sym_info > 0)
@@ -27,6 +22,8 @@ int symtab_add_global_symbol(char *symbol_name)
     }
 
     global_symbols[global_symbols_index].sym_name = strdup(symbol_name);
+    global_symbols[global_symbols_index].sym_type = sym_type;
+    global_symbols[global_symbols_index].data_type = data_type;
     debug_print(SEV_DEBUG, "Added symbol %s in globals symbol table", symbol_name);
     return global_symbols_index++;
 }
@@ -44,7 +41,7 @@ int symtab_find_global_symbol(char *symbol_name)
     return -1;
 }
 
-char *symtab_get_symbol_name(int symbol_index)
+Symbol_t *symtab_get_symbol(int symbol_index)
 {
-    return global_symbols[symbol_index].sym_name;
+    return &global_symbols[symbol_index];
 }

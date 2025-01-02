@@ -1,10 +1,17 @@
 program: function_declaration
+       | var_declaration
 
-function_declaration: type_specifier identifier '(' ')' statement_block
+function_declaration: datatype identifier '(' ')' statement_block
                     ;
 
-type_specifier: void 
-              ;           <--- add int here
+var_declaration: datatype identifier [',' identifier]* ';'
+               | datatype identifier '=' expr [',' identifier '=' expr] ';'
+               | ;
+
+datatype: 'int'
+        | 'char'
+        | 'void'
+        ;
 
 statement_block: statement
                | '{' statements '}'
@@ -16,7 +23,7 @@ statements: statement
 
 statement: ';'
          | 'print' ( expression ) ';'
-         | 'int' identifier ';'
+         | var_declaration
          | identifier '=' expr ';'
          | if_statement
          | while_statement

@@ -31,7 +31,6 @@ static ASTNode_t *get_loop_context(ASTNode_t *root);
 static void generate_statements(CodeGenerator_t *gen, ASTNode_t *root);
 static void generate_statement(CodeGenerator_t *gen, ASTNode_t *root);
 static void generate_stmt_print(CodeGenerator_t *gen, ASTNode_t *root);
-static void generate_stmt_var_decl(CodeGenerator_t *gen, ASTNode_t *root);
 static void generate_stmt_if(CodeGenerator_t *gen, ASTNode_t *root);
 static void generate_stmt_while(CodeGenerator_t *gen, ASTNode_t *root);
 static void generate_stmt_do_while(CodeGenerator_t *gen, ASTNode_t *root);
@@ -45,7 +44,8 @@ static Register generate_arithmetic(CodeGenerator_t *gen, ASTNode_t *root);
 
 static void generate_declerations(CodeGenerator_t *gen, ASTNode_t *root);
 static void generate_decleration(CodeGenerator_t *gen, ASTNode_t *root);
-static void generate_func(CodeGenerator_t *gen, ASTNode_t *root);
+static void generate_decl_func(CodeGenerator_t *gen, ASTNode_t *root);
+static void generate_decl_var(CodeGenerator_t *gen, ASTNode_t *root);
 //////////////////////////////
 //////////////////////////////
 
@@ -134,7 +134,7 @@ static Register generate_arithmetic(CodeGenerator_t *gen, ASTNode_t *root)
     case AST_INT_LIT:
         return asm_init_register(gen, root->value);
     case AST_VAR:
-        return asm_get_global_var(gen, symtab_get_symbol_name(root->value));
+        return asm_get_global_var(gen, symtab_get_symbol(root->value)->sym_name);
 
     default:
         debug_print(
@@ -162,7 +162,7 @@ static void generate_statement(CodeGenerator_t *gen, ASTNode_t *root)
         generate_stmt_print(gen, root);
         break;
     case AST_VAR_DECL:
-        generate_stmt_var_decl(gen, root);
+        generate_decl_var(gen, root);
         break;
     case AST_ASSIGN:
         generate_stmt_assign(gen, root);
@@ -196,9 +196,18 @@ static void generate_stmt_print(CodeGenerator_t *gen, ASTNode_t *root)
     asm_print(gen, r);
 }
 
-static void generate_stmt_var_decl(CodeGenerator_t *gen, ASTNode_t *root)
+static void generate_decl_var(CodeGenerator_t *gen, ASTNode_t *root)
 {
-    asm_add_global_var(gen, symtab_get_symbol_name(root->value));
+    // TODO check if the variable has initial value
+    asm_add_global_var(
+        gen,
+        symtab_get_symbol(root->value)->sym_name,
+        (RegSize_e)root->expr_type->size);
+    if (root->left)
+    {
+        Register value = generate_expr(gen, root->left);
+        asm_set_global_var(gen, symtab_get_symbol(root->value)->sym_name, value);
+    }
 }
 
 static void generate_stmt_if(CodeGenerator_t *gen, ASTNode_t *root)
@@ -287,7 +296,7 @@ static void generate_stmt_break(CodeGenerator_t *gen, ASTNode_t *root)
 static void generate_stmt_assign(CodeGenerator_t *gen, ASTNode_t *root)
 {
     Register i = generate_expr(gen, root->right);
-    asm_set_global_var(gen, symtab_get_symbol_name(root->left->value), i);
+    asm_set_global_var(gen, symtab_get_symbol(root->left->value)->sym_name, i);
 }
 
 static void generate_declerations(CodeGenerator_t *gen, ASTNode_t *root)
@@ -304,7 +313,10 @@ static void generate_decleration(CodeGenerator_t *gen, ASTNode_t *root)
     switch (root->type)
     {
     case AST_FUNC_DECL:
-        generate_func(gen, root);
+        generate_decl_func(gen, root);
+        break;
+    case AST_VAR_DECL:
+        generate_decl_var(gen, root);
         break;
     default:
         debug_print(SEV_ERROR, "[CG] Unexpected declaration type found");
@@ -312,9 +324,9 @@ static void generate_decleration(CodeGenerator_t *gen, ASTNode_t *root)
     }
 }
 
-static void generate_func(CodeGenerator_t *gen, ASTNode_t *root)
+static void generate_decl_func(CodeGenerator_t *gen, ASTNode_t *root)
 {
-    asm_generate_function_prologue(gen, symtab_get_symbol_name(root->value));
+    asm_generate_function_prologue(gen, symtab_get_symbol(root->value)->sym_name);
     generate_statements(gen, root->left);
     asm_generate_function_epilogue(gen);
 }

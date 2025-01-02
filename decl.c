@@ -2,117 +2,71 @@
 #include "debug.h"
 #include "symtab.h"
 #include "stmt.h"
+#include "expr.h"
+#include "datatype.h"
 
 #include <stdlib.h>
 #include <stdbool.h>
 
-#define TOKEN_BUFFER_MAX_SIZE 256
-
-static Token_t tok_buffer[TOKEN_BUFFER_MAX_SIZE];
-static __uint8_t token_buffer_top = 0;
-static __uint8_t token_buffer_last = 1;
-static __uint8_t token_buffer_size = 0;
-
-static bool match_and_cache_token(Scanner_t *scanner, TokenType_e what);
-static bool scan_token(Scanner_t *scanner, Token_t *tok);
-static bool match_token(Scanner_t *scanner, TokenType_e what);
-
+static void decl_id(Scanner_t *scanner, Token_t *tok);
 static ASTNode_t *decl_function(Scanner_t *scanner);
 
-// ============================================================
-//                  Token Buffer Operations
-// ============================================================
-
-static bool match_and_cache_token(Scanner_t *scanner, TokenType_e what)
+static void decl_id(Scanner_t *scanner, Token_t *tok)
 {
-    Token_t tok;
-    if (token_buffer_size == TOKEN_BUFFER_MAX_SIZE)
-    {
-        debug_print(SEV_ERROR, "[DECL] Token buffer is full!!");
-        exit(1);
-    }
-    scanner_scan(scanner, &tok);
-
-    if (tok.type != what)
+    scanner_scan(scanner, tok);
+    if (tok->type != TOK_ID)
     {
         debug_print(
             SEV_ERROR,
-            "line %d: Expected token: %s, found token: %s",
-            scanner->current_line_number,
-            TokTypeToString(what),
-            TokToString(tok));
+            "[DECL] Expected token TOK_ID, found %s", TokToString(*tok));
         exit(1);
     }
-    scanner_copy_tok(&tok_buffer[token_buffer_last - 1], &tok);
-    token_buffer_last = (token_buffer_last + 1) % TOKEN_BUFFER_MAX_SIZE;
-    token_buffer_size++;
-    return true;
 }
-
-static bool match_token(Scanner_t *scanner, TokenType_e what)
-{
-    if (token_buffer_size == 0)
-    {
-        return scanner_match(scanner, what);
-    }
-    if (tok_buffer[token_buffer_top].type != what)
-    {
-        debug_print(
-            SEV_ERROR,
-            "[DECL] Expected token %s, found token %s",
-            TokTypeToString(what),
-            TokToString(tok_buffer[token_buffer_top]));
-        exit(1);
-    }
-    token_buffer_top = (token_buffer_top + 1) % TOKEN_BUFFER_MAX_SIZE;
-    token_buffer_size--;
-    return true;
-}
-
-static bool scan_token(Scanner_t *scanner, Token_t *tok)
-{
-    if (token_buffer_size == 0)
-    {
-        return scanner_scan(scanner, tok);
-    }
-    scanner_copy_tok(tok, &tok_buffer[token_buffer_top]);
-    token_buffer_top = (token_buffer_top + 1) % TOKEN_BUFFER_MAX_SIZE;
-    token_buffer_size--;
-}
-
-// ============================================================
-//                  Declarations Parsing
-// ============================================================
 
 ASTNode_t *decl_declarations(Scanner_t *scanner)
 {
-    match_and_cache_token(scanner, TOK_VOID);
-    match_and_cache_token(scanner, TOK_ID);
-    match_and_cache_token(scanner, TOK_LPAREN);
+    ASTNode_t *root = NULL;
+    ASTNode_t *head = NULL;
+    ASTNode_t *current = NULL;
+    TokenType_e type;
 
-    ASTNode_t *head = decl_function(scanner);
-    ASTNode_t *root;
-    ASTNode_t *current;
-    Token_t tok;
+    bool need_to_flatten = false;
 
-    root = head;
-
-    while (true)
+    while (1)
     {
-        scanner_peek(scanner, &tok);
-        if (tok.type == TOK_EOF)
+        scanner_cache_tok(scanner);
+        scanner_cache_tok(scanner);
+        type = scanner_cache_tok(scanner);
+
+        if (type == TOK_EOF)
+            break;
+
+        switch (type)
         {
+        case TOK_LPAREN:
+            current = decl_function(scanner);
+            break;
+        default:
+            current = decl_var(scanner);
+            need_to_flatten = true;
             break;
         }
 
-        match_and_cache_token(scanner, TOK_VOID);
-        match_and_cache_token(scanner, TOK_ID);
-        match_and_cache_token(scanner, TOK_LPAREN);
-        current = decl_function(scanner);
-        head->next = current;
+        if (root == NULL)
+            root = current;
+        if (head != NULL)
+            head->next = current;
         head = current;
-    }
 
+        // Move the list tail to the last item in the var decl in case of any
+        // This will handle multiple var declarations in the same line
+        // int a, b, c;
+        if (need_to_flatten)
+        {
+            head = ast_flatten(head);
+            need_to_flatten = false;
+        }
+    }
     return root;
 }
 
@@ -120,17 +74,75 @@ static ASTNode_t *decl_function(Scanner_t *scanner)
 {
     Token_t tok;
     ASTNode_t *stmts;
+    ASTNode_t *func;
+    Datatype_t *return_type;
     int symbol_index;
 
-    scan_token(scanner, &tok); // function type
-    scan_token(scanner, &tok); // function name
-    symbol_index = symtab_add_global_symbol(tok.value.str_value);
-    match_token(scanner, TOK_LPAREN);
-    match_token(scanner, TOK_RPAREN);
+    return_type = datatype_get_type(scanner);
+    decl_id(scanner, &tok);
+    scanner_match(scanner, TOK_LPAREN);
+    scanner_match(scanner, TOK_RPAREN);
     stmts = stmt_block(scanner);
-    return ast_create_node(
+
+    symbol_index = symtab_add_global_symbol(
+        tok.value.str_value,
+        SYMBOL_FUNC,
+        return_type);
+
+    func = ast_create_node(
         AST_FUNC_DECL,
         stmts,
         NULL,
         symbol_index);
+    func->expr_type = return_type;
+    return func;
+}
+
+ASTNode_t *decl_var(Scanner_t *scanner)
+{
+    Datatype_t *var_type;
+    ASTNode_t *var_list_head = NULL;
+    ASTNode_t *var_list_tail = NULL;
+    ASTNode_t *current_var;
+
+    Token_t tok;
+    int symbol_index;
+
+    var_type = datatype_get_type(scanner);
+
+    do
+    {
+        decl_id(scanner, &tok);
+
+        symbol_index = symtab_add_global_symbol(
+            tok.value.str_value,
+            SYMBOL_VAR,
+            var_type);
+
+        current_var = ast_create_leaf_node(AST_VAR_DECL, symbol_index);
+        current_var->expr_type = var_type;
+
+        if (var_list_head == NULL)
+            var_list_head = current_var;
+
+        if (var_list_tail != NULL)
+            var_list_tail->next = current_var;
+
+        var_list_tail = current_var;
+
+        scanner_scan(scanner, &tok);
+        if (tok.type == TOK_ASSIGN)
+        {
+            current_var->left = expr_expression(scanner);
+            datatype_check_assign_expr_type(
+                symtab_get_symbol(symbol_index)->data_type,
+                current_var->left->expr_type);
+            scanner_scan(scanner, &tok);
+        }
+
+    } while (tok.type == TOK_COMMA);
+    scanner_putback(scanner, &tok);
+    scanner_match(scanner, TOK_SEMICOLON);
+
+    return var_list_head;
 }

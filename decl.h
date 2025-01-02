@@ -5,5 +5,6 @@
 #include "scanner.h"
 
 ASTNode_t *decl_declarations(Scanner_t *scanner);
+ASTNode_t *decl_var(Scanner_t *scanner);
 
 #endif

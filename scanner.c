@@ -193,6 +193,9 @@ static bool __scanner_scan(Scanner_t *scanner, Token_t *tok, bool ignore_cache)
     case ';':
         tok->type = TOK_SEMICOLON;
         break;
+    case ',':
+        tok->type = TOK_COMMA;
+        break;
     case '(':
         tok->type = TOK_LPAREN;
         break;

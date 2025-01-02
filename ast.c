@@ -17,6 +17,7 @@ ASTNode_t *ast_create_node(ASTNode_type_e type, ASTNode_t *left, ASTNode_t *righ
     node->right = right;
     node->value = value;
     node->next = NULL;
+    node->expr_type = NULL;
 
     while (left)
     {
@@ -58,4 +59,11 @@ ASTNode_t *ast_get_parent_of_type(ASTNode_t *node, ASTNode_type_e type)
         node = node->parent;
     }
     return NULL;
+}
+
+ASTNode_t *ast_flatten(ASTNode_t *node)
+{
+    while (node->next != NULL)
+        node = node->next;
+    return node;
 }
