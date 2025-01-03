@@ -41,7 +41,8 @@ while_statement: 'while' '(' expression ')' statement_block
 
 do_while_statement: 'do' statement_block 'while' '(' expression ')' ';'
 
-for_statement: 'for' '(' statement expression ';' statement ')' statement_block
+# TODO: revesit the syntax for for loops
+for_statement: 'for' '(' statement expression ';' assignment_expression ')' statement_block
 
 expression: comparison_expression
           | assignment_expression

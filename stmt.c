@@ -50,7 +50,7 @@ static ASTNode_t *stmt_statement(Scanner_t *scanner)
 
     // Func calls, assinement statements
     case TOK_ID:
-        
+
         if (strcmp(t.value.str_value, "print") == 0)
         {
             return stmt_print(scanner);
@@ -192,8 +192,17 @@ static ASTNode_t *stmt_for(Scanner_t *scanner)
     pre_post = stmt_statement(scanner);
     pre_post->next = expr_expression(scanner);
     scanner_match(scanner, TOK_SEMICOLON);
-    pre_post->next->next = stmt_statement(scanner);
-    scanner_match(scanner, TOK_RPAREN);
+    scanner_scan(scanner, &tok);
+    if (tok.type == TOK_RPAREN)
+    {
+        pre_post->next->next = ast_create_leaf_node(AST_EMPTY, 0);
+    }
+    else
+    {
+        scanner_putback(scanner, &tok);
+        pre_post->next->next = expr_assignment(scanner);
+        scanner_match(scanner, TOK_RPAREN);
+    }
     code = stmt_block(scanner);
 
     return ast_create_node(
