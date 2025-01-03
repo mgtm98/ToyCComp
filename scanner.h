@@ -28,6 +28,7 @@ typedef enum
     TOK_INT,  /** 'int' keyword. */
     TOK_CHAR, /** 'int' keyword. */
     TOK_VOID, /** 'void' keyword. */
+    TOK_LONG, /** 'void' keyword. */
 
     TOK_IF,    /** 'if' keyword. */
     TOK_ELSE,  /** 'else' keyword. */
@@ -75,6 +76,7 @@ static char *__token_names[] = {
     "TOK_INT",
     "TOK_CHAR",
     "TOK_VOID",
+    "TOK_LONG",
     "TOK_IF",
     "TOK_ELSE",
     "TOK_WHILE",

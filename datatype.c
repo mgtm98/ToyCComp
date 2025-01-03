@@ -6,11 +6,13 @@
 #define DATATYPE_VOID (&__supported_primative_types[0])
 #define DATATYPE_CHAR (&__supported_primative_types[1])
 #define DATATYPE_INT (&__supported_primative_types[2])
+#define DATATYPE_LONG (&__supported_primative_types[3])
 
 Datatype_t __supported_primative_types[] = {
     {"void", 0},
     {"char", 8},
-    {"int", 32}};
+    {"int", 32},
+    {"long", 64}};
 
 Datatype_t *datatype_get_type(Scanner_t *scanner)
 {
@@ -25,6 +27,8 @@ Datatype_t *datatype_get_type(Scanner_t *scanner)
         return &__supported_primative_types[DT_INT];
     case TOK_VOID:
         return &__supported_primative_types[DT_VOID];
+    case TOK_LONG:
+        return &__supported_primative_types[DT_LONG];
     default:
         if (tok.type != TOK_ID)
         {

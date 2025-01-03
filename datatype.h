@@ -16,7 +16,8 @@ typedef enum
 {
     DT_VOID,
     DT_CHAR,
-    DT_INT
+    DT_INT,
+    DT_LONG
 } Datatype_Primative_e;
 
 Datatype_t *datatype_get_type(Scanner_t *scanner);

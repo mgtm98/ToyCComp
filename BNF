@@ -11,6 +11,7 @@ var_declaration: datatype identifier [',' identifier]* ';'
 datatype: 'int'
         | 'char'
         | 'void'
+        | 'long'
         ;
 
 statement_block: statement
