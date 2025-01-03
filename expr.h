@@ -6,5 +6,6 @@
 #include "debug.h"
 
 ASTNode_t *expr_expression(Scanner_t *scanner);
+ASTNode_t *expr_assignment(Scanner_t *scanner);
 
 #endif

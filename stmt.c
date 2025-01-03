@@ -9,12 +9,12 @@ static ASTNode_t *stmt_statements(Scanner_t *scanner);
 static ASTNode_t *stmt_statement(Scanner_t *scanner);
 static ASTNode_t *stmt_print(Scanner_t *scanner);
 static ASTNode_t *stmt_var_decl(Scanner_t *scanner);
-static ASTNode_t *stmt_assign(Scanner_t *scanner);
 static ASTNode_t *stmt_if(Scanner_t *scanner);
 static ASTNode_t *stmt_while(Scanner_t *scanner);
 static ASTNode_t *stmt_do_while(Scanner_t *scanner);
 static ASTNode_t *stmt_for(Scanner_t *scanner);
 static ASTNode_t *stmt_break(Scanner_t *scanner);
+static ASTNode_t *stmt_expression(Scanner_t *scanner);
 
 static ASTNode_t *stmt_statements(Scanner_t *scanner)
 {
@@ -50,13 +50,14 @@ static ASTNode_t *stmt_statement(Scanner_t *scanner)
 
     // Func calls, assinement statements
     case TOK_ID:
+        
         if (strcmp(t.value.str_value, "print") == 0)
         {
             return stmt_print(scanner);
         }
-        else
+        else if (symtab_get_symbol(symtab_find_global_symbol(t.value.str_value))->sym_type == SYMBOL_VAR)
         {
-            return stmt_assign(scanner);
+            return stmt_expression(scanner);
         }
     case TOK_IF:
         return stmt_if(scanner);
@@ -93,41 +94,6 @@ static ASTNode_t *stmt_print(Scanner_t *scanner)
 static ASTNode_t *stmt_var_decl(Scanner_t *scanner)
 {
     return decl_var(scanner);
-}
-
-static ASTNode_t *stmt_assign(Scanner_t *scanner)
-{
-    Token_t tok;
-    ASTNode_t *var;
-    ASTNode_t *expr;
-
-    scanner_scan(scanner, &tok);
-    if (tok.type != TOK_ID)
-    {
-        debug_print(SEV_ERROR, "Expected a TOK_ID token, found %s", TokToString(tok));
-        exit(1);
-    }
-    int var_symbol_index = symtab_find_global_symbol(tok.value.str_value);
-    if (var_symbol_index < 0)
-    {
-        debug_print(SEV_ERROR, "Variable %s is not defined before", tok.value.str_value);
-        exit(1);
-    }
-    var = ast_create_leaf_node(
-        AST_VAR,
-        var_symbol_index);
-
-    scanner_match(scanner, TOK_ASSIGN);
-    expr = expr_expression(scanner);
-    scanner_match(scanner, TOK_SEMICOLON);
-
-    datatype_check_assign_expr_type(symtab_get_symbol(var_symbol_index)->data_type, expr->expr_type);
-
-    return ast_create_node(
-        AST_ASSIGN,
-        var,
-        expr,
-        0);
 }
 
 static ASTNode_t *stmt_if(Scanner_t *scanner)
@@ -242,6 +208,17 @@ static ASTNode_t *stmt_break(Scanner_t *scanner)
     scanner_match(scanner, TOK_BREAK);
     scanner_match(scanner, TOK_SEMICOLON);
     return ast_create_leaf_node(AST_BREAK, 0);
+}
+
+static ASTNode_t *stmt_expression(Scanner_t *scanner)
+{
+    Token_t tok;
+    ASTNode_t *assignment_expr;
+
+    assignment_expr = expr_expression(scanner);
+    scanner_match(scanner, TOK_SEMICOLON);
+
+    return assignment_expr;
 }
 
 ASTNode_t *stmt_block(Scanner_t *scanner)

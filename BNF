@@ -25,7 +25,7 @@ statements: statement
 statement: ';'
          | 'print' ( expression ) ';'
          | var_declaration
-         | identifier '=' expr ';'
+         | expression ';'
          | if_statement
          | while_statement
          | do_while_statement
@@ -44,7 +44,10 @@ do_while_statement: 'do' statement_block 'while' '(' expression ')' ';'
 for_statement: 'for' '(' statement expression ';' statement ')' statement_block
 
 expression: comparison_expression
+          | assignment_expression
           ;
+
+assignment_expression: identifier '=' expression 
 
 comparison_expression: additive_expression
                      | additive_expression '<' additive_expression

@@ -30,6 +30,8 @@ static ASTNode_t *expr_val(Scanner_t *scanner);
 static ASTNode_t *expr_val_intlit(Scanner_t *scanner);
 static ASTNode_t *expr_val_var(Scanner_t *scanner);
 static ASTNode_t *expr_val_expr(Scanner_t *scanner);
+
+ASTNode_t *expr_assignment(Scanner_t *scanner);
 ASTNode_t *expr_expression(Scanner_t *scanner);
 
 static ASTNode_type_e get_node_type(TokenType_e type)
@@ -64,8 +66,7 @@ static ASTNode_type_e get_node_type(TokenType_e type)
 static ASTNode_t *expr_val(Scanner_t *scanner)
 {
     Token_t token;
-    scanner_scan(scanner, &token);
-    scanner_putback(scanner, &token);
+    scanner_peek(scanner, &token);
     switch (token.type)
     {
     case TOK_INTLIT:
@@ -220,9 +221,63 @@ static ASTNode_t *expr_comparison_expression(Scanner_t *scanner)
     }
 }
 
+ASTNode_t *expr_assignment(Scanner_t *scanner)
+{
+    Token_t tok;
+    ASTNode_t *var;
+    ASTNode_t *val;
+    ASTNode_t *expr;
+
+    scanner_scan(scanner, &tok);
+    if (tok.type != TOK_ID)
+    {
+        debug_print(SEV_ERROR, "Expected a TOK_ID token, found %s", TokToString(tok));
+        exit(1);
+    }
+    int var_symbol_index = symtab_find_global_symbol(tok.value.str_value);
+    if (var_symbol_index < 0)
+    {
+        debug_print(SEV_ERROR, "Variable %s is not defined before", tok.value.str_value);
+        exit(1);
+    }
+    var = ast_create_leaf_node(
+        AST_VAR,
+        var_symbol_index);
+    var->expr_type = symtab_get_symbol(var_symbol_index)->data_type;
+
+    scanner_match(scanner, TOK_ASSIGN);
+    val = expr_expression(scanner);
+
+    expr = ast_create_node(
+        AST_ASSIGN,
+        var,
+        val,
+        0);
+    expr->expr_type = var->expr_type;
+
+    datatype_check_assign_expr_type(symtab_get_symbol(var_symbol_index)->data_type, expr->expr_type);
+    return expr;
+}
+
 ASTNode_t *expr_expression(Scanner_t *scanner)
 {
-    ASTNode_t *expr = expr_comparison_expression(scanner);
+    TokenType_e type;
+    ASTNode_t *expr;
+
+    // we need to check for ID ASSIGN expr
+    // ID token is already cached in stmt_statement,
+    // we need to cache only one token to know its' type.
+    type = scanner_cache_tok(scanner);
+
+    if (type == TOK_ASSIGN)
+    {
+        expr = expr_assignment(scanner);
+    }
+    else
+    {
+        expr = expr_comparison_expression(scanner);
+    }
+
     assert(expr->expr_type != NULL);
     return expr;
 }

@@ -308,8 +308,15 @@ void scanner_putback(Scanner_t *scanner, Token_t *tok)
 
 void scanner_peek(Scanner_t *scanner, Token_t *tok)
 {
-    scanner_scan(scanner, tok);
-    scanner_putback(scanner, tok);
+    if (scanner->buffer_size == 0)
+    {
+        scanner_scan(scanner, tok);
+        scanner_putback(scanner, tok);
+    }
+    else
+    {
+        scanner_copy_tok(tok, &scanner->putback_tok_buffer[scanner->buffer_head]);
+    }
 }
 
 void scanner_copy_tok(Token_t *dest, Token_t *src)
