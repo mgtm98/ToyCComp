@@ -16,6 +16,7 @@ typedef struct
 
 } Symbol_t;
 
+void symtab_init_global_symtab();
 int symtab_add_global_symbol(char *symbol_name, SymbolType_e sym_type, Datatype_t *data_type);
 int symtab_find_global_symbol(char *symbol_name);
 Symbol_t *symtab_get_symbol(int symbol_index);
