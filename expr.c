@@ -17,6 +17,7 @@
 #include "symtab.h"
 #include "datatype.h"
 #include "decl.h"
+#include "llist_definitions.h"
 
 #include <assert.h>
 #include <stdbool.h>
@@ -264,6 +265,14 @@ static ASTNode_t *expr_func_call(Scanner_t *scanner)
             ((SymbolFunc_t *)func_symbol)->args.size,
             args_count(func_args));
         exit(1);
+    }
+
+    int counter = 0;
+    for (ASTNode_t *actual_arg = func_args; actual_arg; actual_arg = actual_arg->next)
+    {
+        SymbolFuncArg_t *formal_arg = LList_SymbolFuncArg_get(&((SymbolFunc_t *)func_symbol)->args, counter);
+        datatype_check_assign_expr_type(formal_arg->arg_type, actual_arg->expr_type);
+        counter++;
     }
 
     func_call = ast_create_node(
