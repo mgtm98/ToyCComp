@@ -30,6 +30,8 @@ typedef enum
     AST_VAR_DECL,
     AST_FUNC_DECL,
 
+    AST_FUNC_CALL,
+
     AST_IF,
 
     AST_WHILE,
@@ -72,6 +74,7 @@ static char *__ast_type_names[] = {
     "AST_DATATYPE",
     "AST_VAR_DECL",
     "AST_FUNC_DECL",
+    "AST_FUNC_CALL",
     "AST_IF",
     "AST_WHILE",
     "AST_DO_WHILE",
@@ -83,5 +86,6 @@ ASTNode_t *ast_create_node(ASTNode_type_e type, ASTNode_t *left, ASTNode_t *righ
 ASTNode_t *ast_create_leaf_node(ASTNode_type_e type, int value);
 ASTNode_t *ast_get_parent_of_type(ASTNode_t *node, ASTNode_type_e type);
 ASTNode_t *ast_flatten(ASTNode_t *node);
+void ast_free(ASTNode_t *node);
 
 #endif

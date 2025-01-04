@@ -1,5 +1,6 @@
 #include "ast.h"
 #include "debug.h"
+#include "llist_definitions.h"
 
 #include <stdlib.h>
 
@@ -66,4 +67,28 @@ ASTNode_t *ast_flatten(ASTNode_t *node)
     while (node->next != NULL)
         node = node->next;
     return node;
+}
+
+void ast_free(ASTNode_t *node)
+{
+    LList_t node_list;
+    LList_ASTNode_init(&node_list);
+    LList_ASTNode_append(&node_list, node);
+
+    while (node_list.size != 0)
+    {
+        ASTNode_t *current = LList_ASTNode_tail(&node_list);
+
+        if (current->right != NULL)
+            LList_ASTNode_append(&node_list, current->right);
+
+        if (current->left != NULL)
+            LList_ASTNode_append(&node_list, current->left);
+
+        if (current->next != NULL)
+            LList_ASTNode_append(&node_list, current->next);
+
+        LList_ASTNode_pop(&node_list);
+        free(current);
+    }
 }

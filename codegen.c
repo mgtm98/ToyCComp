@@ -284,6 +284,7 @@ static void generate_stmt_for(CodeGenerator_t *gen, ASTNode_t *root)
 
 static void generate_stmt_break(CodeGenerator_t *gen, ASTNode_t *root)
 {
+    // TODO: Move this check early beforce codegen stage
     ASTNode_t *loop_node = get_loop_context(root);
     if (loop_node == NULL)
     {

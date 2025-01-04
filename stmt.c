@@ -55,10 +55,12 @@ static ASTNode_t *stmt_statement(Scanner_t *scanner)
         {
             return stmt_print(scanner);
         }
-        else if (symtab_get_symbol(symtab_find_global_symbol(t.value.str_value))->sym_type == SYMBOL_VAR)
+        else if (symtab_get_symbol(symtab_find_global_symbol(t.value.str_value)) != NULL)
         {
             return stmt_expression(scanner);
         }
+        debug_print(SEV_ERROR, "[STMT] Unrecognized ID found");
+        exit(1);
     case TOK_IF:
         return stmt_if(scanner);
     case TOK_WHILE:

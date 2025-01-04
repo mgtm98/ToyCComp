@@ -46,9 +46,14 @@ for_statement: 'for' '(' statement expression ';' assignment_expression ')' stat
 
 expression: comparison_expression
           | assignment_expression
+          | func_call_expression
           ;
 
 assignment_expression: identifier '=' expression 
+
+func_call_expression: identifier '(' args? ')'
+
+args: expression [','  expression]*
 
 comparison_expression: additive_expression
                      | additive_expression '<' additive_expression

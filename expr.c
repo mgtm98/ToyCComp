@@ -16,6 +16,7 @@
 #include "debug.h"
 #include "symtab.h"
 #include "datatype.h"
+#include "decl.h"
 
 #include <assert.h>
 #include <stdbool.h>
@@ -30,6 +31,7 @@ static ASTNode_t *expr_val(Scanner_t *scanner);
 static ASTNode_t *expr_val_intlit(Scanner_t *scanner);
 static ASTNode_t *expr_val_var(Scanner_t *scanner);
 static ASTNode_t *expr_val_expr(Scanner_t *scanner);
+static ASTNode_t *expr_func_call(Scanner_t *scanner);
 
 ASTNode_t *expr_assignment(Scanner_t *scanner);
 ASTNode_t *expr_expression(Scanner_t *scanner);
@@ -221,6 +223,50 @@ static ASTNode_t *expr_comparison_expression(Scanner_t *scanner)
     }
 }
 
+static ASTNode_t *expr_func_call(Scanner_t *scanner)
+{
+    Token_t tok;
+    ASTNode_t *func_args = NULL;
+    ASTNode_t *func_call;
+    int symbol_index;
+
+    scanner_scan(scanner, &tok);
+    symbol_index = symtab_find_global_symbol(tok.value.str_value);
+    Symbol_t *func_symbol = symtab_get_symbol(symbol_index);
+
+    if (func_symbol->sym_type != SYMBOL_FUNC)
+    {
+        debug_print(
+            SEV_ERROR,
+            "[EXPR] Calling function %s before definition",
+            func_symbol->sym_name);
+        exit(1);
+    }
+
+    scanner_match(scanner, TOK_LPAREN);
+    func_args = args(scanner);
+    scanner_match(scanner, TOK_RPAREN);
+
+    if (args_count(func_args) != ((SymbolFunc_t *)func_symbol)->args.size)
+    {
+        debug_print(
+            SEV_ERROR,
+            "[EXPR] Expected number of args for %s is %d, found %d",
+            func_symbol->sym_name,
+            ((SymbolFunc_t *)func_symbol)->args.size,
+            args_count(func_args));
+        exit(1);
+    }
+
+    func_call = ast_create_node(
+        AST_FUNC_CALL,
+        func_args,
+        NULL,
+        symbol_index);
+    func_call->expr_type = symtab_get_symbol(symbol_index)->data_type;
+    return func_call;
+}
+
 ASTNode_t *expr_assignment(Scanner_t *scanner)
 {
     Token_t tok;
@@ -238,6 +284,11 @@ ASTNode_t *expr_assignment(Scanner_t *scanner)
     if (var_symbol_index < 0)
     {
         debug_print(SEV_ERROR, "Variable %s is not defined before", tok.value.str_value);
+        exit(1);
+    }
+    if (symtab_get_symbol(var_symbol_index)->sym_type != SYMBOL_VAR)
+    {
+        debug_print(SEV_ERROR, "%s is defined as a function!!", tok.value.str_value);
         exit(1);
     }
     var = ast_create_leaf_node(
@@ -272,6 +323,10 @@ ASTNode_t *expr_expression(Scanner_t *scanner)
     if (type == TOK_ASSIGN)
     {
         expr = expr_assignment(scanner);
+    }
+    else if (type == TOK_LPAREN)
+    {
+        expr = expr_func_call(scanner);
     }
     else
     {

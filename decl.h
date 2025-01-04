@@ -7,4 +7,8 @@
 ASTNode_t *decl_declarations(Scanner_t *scanner);
 ASTNode_t *decl_var(Scanner_t *scanner);
 
+// TODO: Move this to utils/common
+ASTNode_t *args(Scanner_t *scanner);
+int args_count(ASTNode_t *args);
+
 #endif

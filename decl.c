@@ -4,12 +4,16 @@
 #include "stmt.h"
 #include "expr.h"
 #include "datatype.h"
+#include "llist_definitions.h"
 
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 
 static void decl_id(Scanner_t *scanner, Token_t *tok);
 static ASTNode_t *decl_function(Scanner_t *scanner);
+
+static void *args_decl(Scanner_t *scanner, LList_t *args_list);
 
 static void decl_id(Scanner_t *scanner, Token_t *tok)
 {
@@ -70,6 +74,9 @@ ASTNode_t *decl_declarations(Scanner_t *scanner)
     return root;
 }
 
+// TODO: Make sure there is no duplicate argument name
+// TODO: Create symbol table for each function
+// TODO: Create a visualization code for SymbolTables
 static ASTNode_t *decl_function(Scanner_t *scanner)
 {
     Token_t tok;
@@ -80,15 +87,17 @@ static ASTNode_t *decl_function(Scanner_t *scanner)
 
     return_type = datatype_get_type(scanner);
     decl_id(scanner, &tok);
-    scanner_match(scanner, TOK_LPAREN);
-    scanner_match(scanner, TOK_RPAREN);
-    stmts = stmt_block(scanner);
 
     symbol_index = symtab_add_global_symbol(
         tok.value.str_value,
         SYMBOL_FUNC,
         return_type);
 
+    scanner_match(scanner, TOK_LPAREN);
+    args_decl(scanner, &((SymbolFunc_t *)symtab_get_symbol(symbol_index))->args);
+    scanner_match(scanner, TOK_RPAREN);
+
+    stmts = stmt_block(scanner);
     func = ast_create_node(
         AST_FUNC_DECL,
         stmts,
@@ -145,4 +154,70 @@ ASTNode_t *decl_var(Scanner_t *scanner)
     scanner_match(scanner, TOK_SEMICOLON);
 
     return var_list_head;
+}
+
+ASTNode_t *args(Scanner_t *scanner)
+{
+    ASTNode_t *args = NULL;
+    ASTNode_t *args_head = NULL;
+    Token_t tok;
+    scanner_peek(scanner, &tok);
+    if (tok.type == TOK_RPAREN)
+        return NULL;
+
+    do
+    {
+        if (args == NULL)
+            args = expr_expression(scanner);
+        else
+        {
+            args->next = expr_expression(scanner);
+            args = args->next;
+        }
+        if (args_head == NULL)
+            args_head = args;
+
+        scanner_scan(scanner, &tok);
+    } while (tok.type == TOK_COMMA);
+    scanner_putback(scanner, &tok);
+    return args_head;
+}
+
+static void *args_decl(Scanner_t *scanner, LList_t *args_list)
+{
+    Token_t tok;
+    Datatype_t *type;
+
+    while (true)
+    {
+        scanner_peek(scanner, &tok);
+        if (tok.type == TOK_RPAREN)
+            break;
+
+        type = datatype_get_type(scanner);
+        scanner_scan(scanner, &tok);
+        if (tok.type != TOK_ID)
+        {
+            debug_print(SEV_ERROR, "[DECL] Expected an identifier, found %s", TokToString(tok));
+        }
+        SymbolFuncArg_t *argument = (SymbolFuncArg_t *)malloc(sizeof(SymbolFuncArg_t));
+        argument->arg_name = strdup(tok.value.str_value);
+        argument->arg_type = type;
+        LList_SymbolFuncArg_append(args_list, argument);
+
+        scanner_peek(scanner, &tok);
+        if (tok.type == TOK_COMMA)
+            scanner_scan(scanner, &tok);
+    }
+}
+
+int args_count(ASTNode_t *args)
+{
+    int i = 0;
+    while (args)
+    {
+        i++;
+        args = args->next;
+    }
+    return i;
 }
