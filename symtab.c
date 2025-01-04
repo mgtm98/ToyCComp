@@ -7,7 +7,7 @@
 
 #define GLOBAL_SYMBOL_SIZE 255
 
-#define GlobalSymTab(index) ((Symbol_t *)darray_get(&global_symbols, index))
+#define GlobalSymTab(index) (*(Symbol_t **)darray_get(&global_symbols, index))
 
 static DArray_t global_symbols;
 static int global_symbols_index = 0;
@@ -21,9 +21,27 @@ int symtab_add_global_symbol(char *symbol_name, SymbolType_e sym_type, Datatype_
         exit(1);
     }
 
-    GlobalSymTab(global_symbols_index)->sym_name = strdup(symbol_name);
-    GlobalSymTab(global_symbols_index)->sym_type = sym_type;
-    GlobalSymTab(global_symbols_index)->data_type = data_type;
+    if (sym_type == SYMBOL_VAR)
+    {
+        GlobalSymTab(global_symbols_index) = malloc(sizeof(Symbol_t));
+        GlobalSymTab(global_symbols_index)->sym_name = strdup(symbol_name);
+        GlobalSymTab(global_symbols_index)->sym_type = sym_type;
+        GlobalSymTab(global_symbols_index)->data_type = data_type;
+    }
+    else if (sym_type == SYMBOL_FUNC)
+    {
+        GlobalSymTab(global_symbols_index) = malloc(sizeof(SymbolFunc_t));
+        ((SymbolFunc_t *)GlobalSymTab(global_symbols_index))->sym_name = strdup(symbol_name);
+        ((SymbolFunc_t *)GlobalSymTab(global_symbols_index))->sym_type = sym_type;
+        ((SymbolFunc_t *)GlobalSymTab(global_symbols_index))->data_type = data_type;
+        LList_init(&(((SymbolFunc_t *)GlobalSymTab(global_symbols_index))->args));
+    }
+    else
+    {
+        debug_print(SEV_ERROR, "[SYMTAB] Unsupported symbol type");
+        exit(1);
+    }
+
     debug_print(SEV_DEBUG, "Added symbol %s in globals symbol table", symbol_name);
     return global_symbols_index++;
 }
@@ -49,5 +67,5 @@ Symbol_t *symtab_get_symbol(int symbol_index)
 
 void symtab_init_global_symtab()
 {
-    darray_init(&global_symbols, GLOBAL_SYMBOL_SIZE, sizeof(Symbol_t));
+    darray_init(&global_symbols, GLOBAL_SYMBOL_SIZE, sizeof(Symbol_t *));
 }
