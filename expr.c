@@ -232,13 +232,21 @@ static ASTNode_t *expr_func_call(Scanner_t *scanner)
 
     scanner_scan(scanner, &tok);
     symbol_index = symtab_find_global_symbol(tok.value.str_value);
-    Symbol_t *func_symbol = symtab_get_symbol(symbol_index);
-
-    if (func_symbol->sym_type != SYMBOL_FUNC)
+    if (symbol_index == -1)
     {
         debug_print(
             SEV_ERROR,
             "[EXPR] Calling function %s before definition",
+            tok.value.str_value);
+        exit(1);
+    }
+
+    Symbol_t *func_symbol = symtab_get_symbol(symbol_index);
+    if (func_symbol->sym_type != SYMBOL_FUNC)
+    {
+        debug_print(
+            SEV_ERROR,
+            "[EXPR] %s is defined as a variable not a function",
             func_symbol->sym_name);
         exit(1);
     }
