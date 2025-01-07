@@ -23,7 +23,6 @@ statements: statement
           ;
 
 statement: ';'
-         | 'print' ( expression ) ';'
          | var_declaration
          | expression ';'
          | if_statement

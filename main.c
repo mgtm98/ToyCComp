@@ -8,11 +8,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int main(void)
+int main(int argc, char *argv[])
 {
     init_debugging();
+    if (argc < 2)
+    {
+        debug_print(SEV_ERROR, "Usage: %s <inputfile>", argv[0]);
+        exit(1);
+    }
+
     symtab_init_global_symtab();
-    Scanner_t *scanner = scanner_init("/mnt/d/ToyCComp/tests/scanner/test1");
+    Scanner_t *scanner = scanner_init(argv[1]);
     ASTNode_t *root = decl_declarations(scanner);
     if (root == NULL)
     {

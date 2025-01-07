@@ -72,6 +72,7 @@ void asm_wrapup(CodeGenerator_t *gen)
                 fprintf(gen->file, "\t%s resq 1\n", bss_symbols[i].symbol_name);
         }
     }
+    fprintf(gen->file, "section .note.GNU-stack noalloc noexec nowrite progbits");
 }
 
 static Register allocate_register(void)
