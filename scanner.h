@@ -30,12 +30,13 @@ typedef enum
     TOK_VOID, /** 'void' keyword. */
     TOK_LONG, /** 'void' keyword. */
 
-    TOK_IF,    /** 'if' keyword. */
-    TOK_ELSE,  /** 'else' keyword. */
-    TOK_WHILE, /** 'while' keyword. */
-    TOK_BREAK, /** 'break' keyword. */
-    TOK_DO,    /** 'do' keyword. */
-    TOK_FOR,   /** 'for  kryword. */
+    TOK_IF,     /** 'if' keyword. */
+    TOK_ELSE,   /** 'else' keyword. */
+    TOK_WHILE,  /** 'while' keyword. */
+    TOK_BREAK,  /** 'break' keyword. */
+    TOK_DO,     /** 'do' keyword. */
+    TOK_FOR,    /** 'for'  keyword. */
+    TOK_RETURN, /** 'return'  keyword. */
 
     TOK_SEMICOLON, /** ';' token. */
     TOK_COMMA,     /** ',' token. */
@@ -83,6 +84,7 @@ static char *__token_names[] = {
     "TOK_BREAK",
     "TOK_DO",
     "TOK_FOR",
+    "TOK_RETURN",
     "TOK_SEMICOLON",
     "TOK_LPAREN",
     "TOK_RPAREN",

@@ -37,10 +37,13 @@ static void generate_stmt_do_while(CodeGenerator_t *gen, ASTNode_t *root);
 static void generate_stmt_for(CodeGenerator_t *gen, ASTNode_t *root);
 static void generate_stmt_break(CodeGenerator_t *gen, ASTNode_t *root);
 static void generate_stmt_assign(CodeGenerator_t *gen, ASTNode_t *root);
+static void generate_stmt_return(CodeGenerator_t *gen, ASTNode_t *root);
+static void generate_stmt_fcall(CodeGenerator_t *gen, ASTNode_t *root);
 
 static Register generate_expr(CodeGenerator_t *gen, ASTNode_t *root);
-static Register generate_comparison(CodeGenerator_t *gen, ASTNode_t *root);
-static Register generate_arithmetic(CodeGenerator_t *gen, ASTNode_t *root);
+static Register generate_expr_comparison(CodeGenerator_t *gen, ASTNode_t *root);
+static Register generate_expr_arithmetic(CodeGenerator_t *gen, ASTNode_t *root);
+static Register generate_expr_fcall(CodeGenerator_t *gen, ASTNode_t *root);
 
 static void generate_declerations(CodeGenerator_t *gen, ASTNode_t *root);
 static void generate_decleration(CodeGenerator_t *gen, ASTNode_t *root);
@@ -66,10 +69,13 @@ static ASTNode_t *get_loop_context(ASTNode_t *node)
 
 static Register generate_expr(CodeGenerator_t *gen, ASTNode_t *root)
 {
-    return generate_comparison(gen, root);
+    if (root->type == AST_FUNC_CALL)
+        return generate_expr_fcall(gen, root);
+    else
+        return generate_expr_comparison(gen, root);
 }
 
-static Register generate_comparison(CodeGenerator_t *gen, ASTNode_t *root)
+static Register generate_expr_comparison(CodeGenerator_t *gen, ASTNode_t *root)
 {
     Register left, right;
 
@@ -81,11 +87,11 @@ static Register generate_comparison(CodeGenerator_t *gen, ASTNode_t *root)
         root->type != AST_COMP_LT &&
         root->type != AST_COMP_LE)
     {
-        return generate_arithmetic(gen, root);
+        return generate_expr_arithmetic(gen, root);
     }
 
-    left = generate_arithmetic(gen, root->left);
-    right = generate_arithmetic(gen, root->right);
+    left = generate_expr_arithmetic(gen, root->left);
+    right = generate_expr_arithmetic(gen, root->right);
 
     switch (root->type)
     {
@@ -105,21 +111,21 @@ static Register generate_comparison(CodeGenerator_t *gen, ASTNode_t *root)
     default:
         debug_print(
             SEV_ERROR,
-            "[CG] Unexpected type: %s in generate_comparison\n",
+            "[CG] Unexpected type: %s in generate_expr_comparison\n",
             NodeToString(*root));
         exit(1);
     }
 }
 
-static Register generate_arithmetic(CodeGenerator_t *gen, ASTNode_t *root)
+static Register generate_expr_arithmetic(CodeGenerator_t *gen, ASTNode_t *root)
 {
     Register left, right;
 
-    if (root->left)
-        left = generate_arithmetic(gen, root->left);
+    if (root->left && root->type != AST_FUNC_CALL)
+        left = generate_expr_arithmetic(gen, root->left);
 
     if (root->right)
-        right = generate_arithmetic(gen, root->right);
+        right = generate_expr_arithmetic(gen, root->right);
 
     switch (root->type)
     {
@@ -135,14 +141,29 @@ static Register generate_arithmetic(CodeGenerator_t *gen, ASTNode_t *root)
         return asm_init_register(gen, root->value);
     case AST_VAR:
         return asm_get_global_var(gen, symtab_get_symbol(root->value)->sym_name);
+    case AST_FUNC_CALL:
+        return generate_expr_fcall(gen, root);
 
     default:
         debug_print(
             SEV_ERROR,
-            "[CG] Unexpected type: %s in generate_arithmetic\n",
+            "[CG] Unexpected type: %s in generate_expr_arithmetic\n",
             NodeToString(*root));
         exit(1);
     }
+}
+
+static Register generate_expr_fcall(CodeGenerator_t *gen, ASTNode_t *root)
+{
+    Register expr = asm_NoReg;
+    if (root->left)
+        expr = generate_expr(gen, root->left);
+
+    return asm_generate_func_call(
+        gen,
+        symtab_get_symbol(root->value)->sym_name,
+        expr,
+        true);
 }
 
 static void generate_statements(CodeGenerator_t *gen, ASTNode_t *root)
@@ -183,6 +204,12 @@ static void generate_statement(CodeGenerator_t *gen, ASTNode_t *root)
         generate_stmt_break(gen, root);
         break;
     case AST_EMPTY:
+        break;
+    case AST_RETURN:
+        generate_stmt_return(gen, root);
+        break;
+    case AST_FUNC_CALL:
+        generate_stmt_fcall(gen, root);
         break;
     default:
         debug_print(SEV_ERROR, "[CG] Unexpected node: %s", NodeToString(*root));
@@ -300,6 +327,25 @@ static void generate_stmt_assign(CodeGenerator_t *gen, ASTNode_t *root)
     asm_set_global_var(gen, symtab_get_symbol(root->left->value)->sym_name, i);
 }
 
+static void generate_stmt_return(CodeGenerator_t *gen, ASTNode_t *root)
+{
+    Register i = generate_expr(gen, root->left);
+    asm_generate_func_return(gen, i, symtab_get_symbol(root->value)->data_type->size);
+}
+
+static void generate_stmt_fcall(CodeGenerator_t *gen, ASTNode_t *root)
+{
+    Register expr = asm_NoReg;
+    if (root->left)
+        expr = generate_expr(gen, root->left);
+
+    asm_generate_func_call(
+        gen,
+        symtab_get_symbol(root->value)->sym_name,
+        expr,
+        false);
+}
+
 static void generate_declerations(CodeGenerator_t *gen, ASTNode_t *root)
 {
     while (root)
@@ -336,6 +382,7 @@ CodeGenerator_t *codegen_init(char *path)
 {
     CodeGenerator_t *gen = (CodeGenerator_t *)malloc(sizeof(CodeGenerator_t));
     gen->file = fopen(path, "w");
+    // gen->file = stdout;
     return gen;
 }
 

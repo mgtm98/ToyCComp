@@ -31,6 +31,7 @@ statement: ';'
          | do_while_statement
          | for_statement
          | 'break' ';'
+         | 'return' expression ';'
          ;
 
 if_statement: 'if' '(' expression ')' statement_block

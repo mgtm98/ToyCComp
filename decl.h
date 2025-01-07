@@ -4,6 +4,8 @@
 #include "ast.h"
 #include "scanner.h"
 
+#define DECL_NO_FUNC -1
+
 ASTNode_t *decl_declarations(Scanner_t *scanner);
 ASTNode_t *decl_var(Scanner_t *scanner);
 

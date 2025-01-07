@@ -16,16 +16,19 @@ typedef struct
 } bss_symbol;
 
 static int free_reg[GLOBAL_REG_COUNT] = {1, 1, 1, 1};
-static char *reg_list[GLOBAL_REG_COUNT] = {"r12", "r13", "r14", "r15"};
-static char *dreg_list[GLOBAL_REG_COUNT] = {"r12d", "r13d", "r14d", "r15d"};
-static char *wreg_list[GLOBAL_REG_COUNT] = {"r12w", "r13w", "r14w", "r15w"};
-static char *breg_list[GLOBAL_REG_COUNT] = {"r12b", "r13b", "r14b", "r15b"};
+static char *reg_list[] = {"r12", "r13", "r14", "r15", "rax"};
+static char *dreg_list[] = {"r12d", "r13d", "r14d", "r15d", "eax"};
+static char *wreg_list[] = {"r12w", "r13w", "r14w", "r15w", "ax"};
+static char *breg_list[] = {"r12b", "r13b", "r14b", "r15b", "al"};
 
 static bss_symbol bss_symbols[MAX_BSS_SYMBOLS];
 static int bss_symbol_count = 0;
 
 static bool print_used = false;
 static LabelId label_count = 0;
+
+Register asm_RAX = (Register)4;
+Register asm_NoReg = (Register)-1;
 
 static bss_symbol *get_bss_symbol(char *name)
 {
@@ -87,6 +90,12 @@ static Register allocate_register(void)
 
 static void free_register(Register r)
 {
+    if (r >= GLOBAL_REG_COUNT)
+    {
+        debug_print(SEV_ERROR, "[ASM] Can't free special register %s", reg_list[r]);
+        exit(1);
+    }
+
     if (free_reg[r] != 0)
     {
         debug_print(SEV_ERROR, "[ASM] Error trying to free register %d\n", r);
@@ -100,6 +109,21 @@ Register asm_init_register(CodeGenerator_t *gen, int value)
     Register r = allocate_register();
     fprintf(gen->file, "\tmov %s, %d\n", reg_list[r], value);
     return r;
+}
+
+void asm_set_register(CodeGenerator_t *gen, Register dest, Register src, RegSize_e size, bool free_src)
+{
+    if (size == SIZE_64bit)
+        fprintf(gen->file, "\tmov %s, %s\n", reg_list[dest], reg_list[src]);
+    else if (size == SIZE_32bit)
+        fprintf(gen->file, "\tmov %s, %s\n", dreg_list[dest], dreg_list[src]);
+    else if (size == SIZE_16bit)
+        fprintf(gen->file, "\tmov %s, %s\n", wreg_list[dest], wreg_list[src]);
+    else if (size == SIZE_8bit)
+        fprintf(gen->file, "\tmov %s, %s\n", breg_list[dest], breg_list[src]);
+
+    if (free_src)
+        free_register(src);
 }
 
 Register asm_add(CodeGenerator_t *gen, Register r1, Register r2)
@@ -270,9 +294,45 @@ void asm_generate_function_prologue(CodeGenerator_t *gen, char *func_name)
 
 void asm_generate_function_epilogue(CodeGenerator_t *gen)
 {
-    fputs("\tmov eax, 0\n", gen->file);
     fputs("\tpop rbp\n", gen->file);
     fputs("\tret\n\n", gen->file);
+}
+
+void asm_generate_func_return(CodeGenerator_t *gen, Register r, RegSize_e size)
+{
+    if (size == SIZE_64bit)
+        fprintf(gen->file, "\tmov %s, %s\n", reg_list[asm_RAX], reg_list[r]);
+    else if (size == SIZE_32bit)
+        fprintf(gen->file, "\tmov %s, %s\n", dreg_list[asm_RAX], dreg_list[r]);
+    else if (size == SIZE_16bit)
+        fprintf(gen->file, "\tmov %s, %s\n", wreg_list[asm_RAX], wreg_list[r]);
+    else if (size == SIZE_8bit)
+        fprintf(gen->file, "\tmov %s, %s\n", breg_list[asm_RAX], breg_list[r]);
+
+    // TODO: uncomment this when handling register saving when doing function calls
+    // free_register(r);
+}
+
+Register asm_generate_func_call(CodeGenerator_t *gen, char *func_name, Register arg1, bool need_return)
+{
+    // TODO: Check the size of the argument and use the correct reg for it
+    Register out = allocate_register();
+    if (arg1 != asm_NoReg)
+        fprintf(gen->file, "\tmov rdi, %s\n", reg_list[arg1]);
+
+    fprintf(gen->file, "\tcall %s\n", func_name);
+    fprintf(gen->file, "\tmov %s,  rax\n", reg_list[out]);
+
+    if (arg1 != asm_NoReg)
+        free_register(arg1);
+
+    if (need_return)
+        return (out);
+    else
+    {
+        free_register(out);
+        return asm_NoReg;
+    }
 }
 
 void asm_print(CodeGenerator_t *gen, Register r)

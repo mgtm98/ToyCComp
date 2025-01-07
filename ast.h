@@ -31,6 +31,7 @@ typedef enum
     AST_FUNC_DECL,
 
     AST_FUNC_CALL,
+    AST_RETURN,
 
     AST_IF,
 
@@ -75,6 +76,7 @@ static char *__ast_type_names[] = {
     "AST_VAR_DECL",
     "AST_FUNC_DECL",
     "AST_FUNC_CALL",
+    "AST_RETURN",
     "AST_IF",
     "AST_WHILE",
     "AST_DO_WHILE",

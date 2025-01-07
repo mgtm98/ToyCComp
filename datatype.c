@@ -3,11 +3,8 @@
 
 #include <stdbool.h>
 
-#define DATATYPE_VOID (&__supported_primative_types[0])
-#define DATATYPE_CHAR (&__supported_primative_types[1])
-#define DATATYPE_INT (&__supported_primative_types[2])
-#define DATATYPE_LONG (&__supported_primative_types[3])
-
+// Supported primative sizes are related to the arch of the machine
+// TODO: Move this to code gen
 Datatype_t __supported_primative_types[] = {
     {"void", 0},
     {"char", 8},

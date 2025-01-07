@@ -15,6 +15,8 @@ static ASTNode_t *decl_function(Scanner_t *scanner);
 
 static void *args_decl(Scanner_t *scanner, LList_t *args_list);
 
+int decl_current_func = DECL_NO_FUNC;
+
 static void decl_id(Scanner_t *scanner, Token_t *tok)
 {
     scanner_scan(scanner, tok);
@@ -92,12 +94,15 @@ static ASTNode_t *decl_function(Scanner_t *scanner)
         tok.value.str_value,
         SYMBOL_FUNC,
         return_type);
+    decl_current_func = symbol_index;
 
     scanner_match(scanner, TOK_LPAREN);
     args_decl(scanner, &((SymbolFunc_t *)symtab_get_symbol(symbol_index))->args);
     scanner_match(scanner, TOK_RPAREN);
 
     stmts = stmt_block(scanner);
+    decl_current_func = DECL_NO_FUNC;
+
     func = ast_create_node(
         AST_FUNC_DECL,
         stmts,

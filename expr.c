@@ -111,15 +111,25 @@ static ASTNode_t *expr_val_var(Scanner_t *scanner)
 {
     Token_t token;
     ASTNode_t *expr;
-    scanner_scan(scanner, &token);
+    scanner_peek(scanner, &token);
+
     int var_symbol_index = symtab_find_global_symbol(token.value.str_value);
     if (var_symbol_index < 0)
     {
-        debug_print(SEV_ERROR, "[EXPR] Variable %s is not defined before", token.value.str_value);
+        debug_print(SEV_ERROR, "[EXPR] %s is not defined before", token.value.str_value);
         exit(1);
     }
 
-    expr = ast_create_leaf_node(AST_VAR, var_symbol_index);
+    if (symtab_get_symbol(var_symbol_index)->sym_type == SYMBOL_FUNC)
+    {
+        expr = expr_func_call(scanner);
+    }
+    else
+    {
+        scanner_match(scanner, TOK_ID);
+        expr = ast_create_leaf_node(AST_VAR, var_symbol_index);
+    }
+
     expr->expr_type = symtab_get_symbol(var_symbol_index)->data_type;
     return expr;
 }
@@ -335,15 +345,13 @@ ASTNode_t *expr_expression(Scanner_t *scanner)
     // we need to check for ID ASSIGN expr
     // ID token is already cached in stmt_statement,
     // we need to cache only one token to know its' type.
+    if (scanner->buffer_size == 0)
+        scanner_cache_tok(scanner);
     type = scanner_cache_tok(scanner);
 
     if (type == TOK_ASSIGN)
     {
         expr = expr_assignment(scanner);
-    }
-    else if (type == TOK_LPAREN)
-    {
-        expr = expr_func_call(scanner);
     }
     else
     {

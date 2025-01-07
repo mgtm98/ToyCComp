@@ -123,6 +123,7 @@ static TokenType_e check_keyword(char *id)
         {"if", TOK_IF},
         {"int", TOK_INT},
         {"long", TOK_LONG},
+        {"return", TOK_RETURN},
         {"void", TOK_VOID},
         {"while", TOK_WHILE}};
 

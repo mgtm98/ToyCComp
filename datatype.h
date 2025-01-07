@@ -20,6 +20,13 @@ typedef enum
     DT_LONG
 } Datatype_Primative_e;
 
+extern Datatype_t __supported_primative_types[];
+
+#define DATATYPE_VOID (&__supported_primative_types[0])
+#define DATATYPE_CHAR (&__supported_primative_types[1])
+#define DATATYPE_INT (&__supported_primative_types[2])
+#define DATATYPE_LONG (&__supported_primative_types[3])
+
 Datatype_t *datatype_get_type(Scanner_t *scanner);
 Datatype_t *datatype_get_primative_type(Datatype_Primative_e type);
 Datatype_t *datatype_expr_type(Datatype_t *left, Datatype_t *right);
