@@ -1,4 +1,4 @@
-name: Run Test Runner Script
+name: Test Script
 
 on:
   push: # Trigger on every push
@@ -37,22 +37,3 @@ jobs:
       run: |
         cat test_summary.log
       id: test-summary
-
-    - name: Create a status badge
-      run: |
-        pass_count=$(grep 'Passed:' test_summary.log | awk '{print $2}')
-        fail_count=$(grep 'Failed:' test_summary.log | awk '{print $2}')
-        echo "tests_passed=$pass_count" >> $GITHUB_ENV
-        echo "tests_failed=$fail_count" >> $GITHUB_ENV
-
-    - name: Update badge file
-      run: |
-        echo "{\"schemaVersion\": 1, \"label\": \"Tests\", \"message\": \"$tests_passed passed, $tests_failed failed\", \"color\": \"success\"}" > badge.json
-    
-    - name: Commit badge update
-      run: |
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-        git add badge.json
-        git commit -m "Update test badge"
-        git push
