@@ -3,6 +3,11 @@
 
 ToyCComp is a hobby project for a C compiler aimed at learning both the C programming language and the fundamentals of compiler design. The ultimate goal is to create a self-compiling compiler (a compiler capable of compiling its own source code) that utilizes SSA (Static Single Assignment) for advanced optimizations.
 
+# Test Status
+
+![Test Status](https://img.shields.io/badge/dynamic/json?url=https://raw.githubusercontent.com/mgtm98/ToyCComp/main/badge.json&label=Tests&query=message&color=green)
+
+
 ## Goals
 - **Learn Compiler Design**: Understand the theory and implementation of modern compilers.
 - **Learn C**: Gain deeper insights into C through practical application.
