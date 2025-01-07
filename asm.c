@@ -52,6 +52,7 @@ void asm_wrapup(CodeGenerator_t *gen)
         fprintf(gen->file, "section .data\n");
         fprintf(gen->file, "\tformat db \"%%d\", 10, 0\n");
     }
+    fprintf(gen->file, "extern print\n");
     fprintf(gen->file, "\n");
     fprintf(gen->file, "\n");
 

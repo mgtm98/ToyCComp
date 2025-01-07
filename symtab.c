@@ -1,6 +1,7 @@
 #include "symtab.h"
 #include "debug.h"
 #include "darray.h"
+#include "llist_definitions.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -68,4 +69,10 @@ Symbol_t *symtab_get_symbol(int symbol_index)
 void symtab_init_global_symtab()
 {
     darray_init(&global_symbols, GLOBAL_SYMBOL_SIZE, sizeof(Symbol_t *));
+
+    int lib_print = symtab_add_global_symbol("print", SYMBOL_FUNC, DATATYPE_VOID);
+    SymbolFuncArg_t *argument = (SymbolFuncArg_t *)malloc(sizeof(SymbolFuncArg_t));
+    argument->arg_name = "x";
+    argument->arg_type = DATATYPE_LONG;
+    LList_SymbolFuncArg_append(&((SymbolFunc_t *)symtab_get_symbol(lib_print))->args, argument);
 }

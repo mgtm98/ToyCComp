@@ -55,7 +55,7 @@ static ASTNode_t *stmt_statement(Scanner_t *scanner)
     // Func calls, assinement statements
     case TOK_ID:
 
-        if (strcmp(t.value.str_value, "print") == 0)
+        if (0 && strcmp(t.value.str_value, "print") == 0)
         {
             return stmt_print(scanner);
         }
@@ -256,7 +256,7 @@ static ASTNode_t *stmt_return(Scanner_t *scanner)
             exit(1);
         }
         scanner_match(scanner, TOK_SEMICOLON);
-        return_stmt = ast_create_leaf_node(AST_RETURN, 0);
+        return_stmt = ast_create_leaf_node(AST_RETURN, decl_current_func);
         return_stmt->expr_type = DATATYPE_VOID;
         return return_stmt;
     }
@@ -269,7 +269,7 @@ static ASTNode_t *stmt_return(Scanner_t *scanner)
             AST_RETURN,
             expr,
             NULL,
-            0);
+            decl_current_func);
         return_stmt->expr_type = expr->expr_type;
         return return_stmt;
     }
