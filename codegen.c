@@ -52,6 +52,8 @@ static void generate_decl_var(CodeGenerator_t *gen, ASTNode_t *root);
 //////////////////////////////
 //////////////////////////////
 
+static bool return_called_flag = false;
+
 static ASTNode_t *get_loop_context(ASTNode_t *node)
 {
     if (node == NULL)
@@ -331,6 +333,7 @@ static void generate_stmt_return(CodeGenerator_t *gen, ASTNode_t *root)
 {
     Register i = generate_expr(gen, root->left);
     asm_generate_func_return(gen, i, symtab_get_symbol(root->value)->data_type->size);
+    return_called_flag = true;
 }
 
 static void generate_stmt_fcall(CodeGenerator_t *gen, ASTNode_t *root)
@@ -373,8 +376,14 @@ static void generate_decleration(CodeGenerator_t *gen, ASTNode_t *root)
 
 static void generate_decl_func(CodeGenerator_t *gen, ASTNode_t *root)
 {
+    return_called_flag = false;
     asm_generate_function_prologue(gen, symtab_get_symbol(root->value)->sym_name);
     generate_statements(gen, root->left);
+    if (!return_called_flag)
+    {
+        Register i = asm_init_register(gen, 0);
+        asm_generate_func_return(gen, i, SIZE_8bit);
+    }
     asm_generate_function_epilogue(gen);
 }
 

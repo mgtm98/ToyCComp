@@ -1,4 +1,4 @@
-int main()
+void main()
 {
   int x;
   x = 1;
@@ -11,5 +11,4 @@ int main()
   print(x);
   x = x + 1;
   print(x);
-  return 0;
 }
