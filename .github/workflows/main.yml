@@ -27,6 +27,11 @@ jobs:
       run: |
         chmod +x ./tests/runner.csh
         ./tests/runner.csh > test_summary.log || true
+    
+    - name: Print test summary
+      run: |
+        echo "Test Summary:"
+        cat test_summary.log
 
     - name: Upload test summary
       run: |
@@ -43,6 +48,7 @@ jobs:
     - name: Update badge file
       run: |
         echo "{\"schemaVersion\": 1, \"label\": \"Tests\", \"message\": \"$tests_passed passed, $tests_failed failed\", \"color\": \"success\"}" > badge.json
+    
     - name: Commit badge update
       run: |
         git config user.name "github-actions[bot]"
