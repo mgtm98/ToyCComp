@@ -1,0 +1,51 @@
+name: Run Test Runner Script
+
+on:
+  schedule:
+    - cron: "0 */2 * * *" # Run every 2 hours
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y nasm
+
+    - name: Compile ToyCComp
+      run: |
+        make compile
+
+    - name: Run testing script
+      run: |
+        chmod +x script.csh
+        ./tests/script.csh > test_summary.log || true
+
+    - name: Upload test summary
+      run: |
+        cat test_summary.log
+      id: test-summary
+
+    - name: Create a status badge
+      run: |
+        pass_count=$(grep 'Passed:' test_summary.log | awk '{print $2}')
+        fail_count=$(grep 'Failed:' test_summary.log | awk '{print $2}')
+        echo "tests_passed=$pass_count" >> $GITHUB_ENV
+        echo "tests_failed=$fail_count" >> $GITHUB_ENV
+
+    - name: Update badge file
+      run: |
+        echo "{\"schemaVersion\": 1, \"label\": \"Tests\", \"message\": \"$tests_passed passed, $tests_failed failed\", \"color\": \"success\"}" > badge.json
+    - name: Commit badge update
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add badge.json
+        git commit -m "Update test badge"
+        git push
