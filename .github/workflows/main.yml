@@ -25,8 +25,7 @@ jobs:
 
     - name: Run testing script
       run: |
-        chmod +x ./tests/runner.csh
-        ./tests/runner.csh > test_summary.log || true
+        csh ./tests/runner.csh > test_summary.log
     
     - name: Print test summary
       run: |

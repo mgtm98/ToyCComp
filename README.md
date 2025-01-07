@@ -5,12 +5,6 @@ ToyCComp is a hobby project for a C compiler aimed at learning both the C progra
 
 [![Testing Script](https://github.com/mgtm98/ToyCComp/actions/workflows/main.yml/badge.svg)](https://github.com/mgtm98/ToyCComp/actions/workflows/main.yml)
 
-
-# Test Status
-
-![Test Status](https://img.shields.io/badge/dynamic/json?url=https://raw.githubusercontent.com/mgtm98/ToyCComp/main/badge.json&label=Tests&query=message&color=green)
-
-
 ## Goals
 - **Learn Compiler Design**: Understand the theory and implementation of modern compilers.
 - **Learn C**: Gain deeper insights into C through practical application.
