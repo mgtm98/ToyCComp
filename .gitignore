@@ -4,3 +4,5 @@ out
 ToyCComp
 .vscode/*
 results
+failed_tests.log
+test_summary.log

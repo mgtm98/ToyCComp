@@ -9,7 +9,7 @@ runs:
 	./out
 
 ast: compile
-	./ToyCComp
+	./ToyCComp $(TEST)
 
 clean:
 	rm out*
