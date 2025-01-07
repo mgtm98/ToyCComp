@@ -38,6 +38,9 @@ ASTNode_t *decl_declarations(Scanner_t *scanner)
 
     bool need_to_flatten = false;
 
+    if (scanner == NULL)
+        return NULL;
+
     while (1)
     {
         scanner_cache_tok(scanner);
