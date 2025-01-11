@@ -147,18 +147,18 @@ ASTNode_t *decl_var(Scanner_t *scanner)
 
         var_list_tail = current_var;
 
-        scanner_scan(scanner, &tok);
+        scanner_peek(scanner, &tok);
         if (tok.type == TOK_ASSIGN)
         {
+            scanner_scan(scanner, &tok);
             current_var->left = expr_expression(scanner);
             datatype_check_assign_expr_type(
                 symtab_get_symbol(symbol_index)->data_type,
                 current_var->left->expr_type);
-            scanner_scan(scanner, &tok);
+            scanner_peek(scanner, &tok);
         }
 
     } while (tok.type == TOK_COMMA);
-    scanner_putback(scanner, &tok);
     scanner_match(scanner, TOK_SEMICOLON);
 
     return var_list_head;
@@ -185,9 +185,12 @@ ASTNode_t *args(Scanner_t *scanner)
         if (args_head == NULL)
             args_head = args;
 
+        scanner_peek(scanner, &tok);
+        if (tok.type != TOK_COMMA)
+            break;
         scanner_scan(scanner, &tok);
-    } while (tok.type == TOK_COMMA);
-    scanner_putback(scanner, &tok);
+    } while (1);
+    // scanner_putback(scanner, &tok);
     return args_head;
 }
 

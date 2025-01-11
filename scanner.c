@@ -7,6 +7,8 @@
 #include <sys/stat.h>
 #include <string.h>
 
+static void scanner_putback(Scanner_t *scanner, Token_t *tok);
+
 static int chrpos(char *s, int c)
 {
     char *p;
@@ -210,6 +212,9 @@ static bool __scanner_scan(Scanner_t *scanner, Token_t *tok, bool ignore_cache)
     case '}':
         tok->type = TOK_RBRACE;
         break;
+    case '&':
+        tok->type = TOK_AMPER;
+        break;
     case '>':
         t = next(scanner);
         if (t == '=')
@@ -300,7 +305,7 @@ bool scanner_match(Scanner_t *scanner, TokenType_e what)
     return false;
 }
 
-void scanner_putback(Scanner_t *scanner, Token_t *tok)
+static void scanner_putback(Scanner_t *scanner, Token_t *tok)
 {
     scanner_copy_tok(&scanner->putback_tok_buffer[scanner->buffer_tail - 1], tok);
     scanner->buffer_tail = (scanner->buffer_tail + 1) % MAX_PUTBACK_BUFFER_SIZE;

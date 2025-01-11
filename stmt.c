@@ -53,18 +53,9 @@ static ASTNode_t *stmt_statement(Scanner_t *scanner)
     {
 
     // Func calls, assinement statements
+    case TOK_STAR:
     case TOK_ID:
-
-        if (0 && strcmp(t.value.str_value, "print") == 0)
-        {
-            return stmt_print(scanner);
-        }
-        else if (symtab_get_symbol(symtab_find_global_symbol(t.value.str_value)) != NULL)
-        {
-            return stmt_expression(scanner);
-        }
-        debug_print(SEV_ERROR, "[STMT] Unrecognized ID found");
-        exit(1);
+        return stmt_expression(scanner);
     case TOK_IF:
         return stmt_if(scanner);
     case TOK_WHILE:
@@ -117,10 +108,9 @@ static ASTNode_t *stmt_if(Scanner_t *scanner)
     scanner_match(scanner, TOK_RPAREN);
     true_code = stmt_block(scanner);
 
-    scanner_scan(scanner, &tok);
+    scanner_peek(scanner, &tok);
     if (tok.type != TOK_ELSE)
     {
-        scanner_putback(scanner, &tok);
         return ast_create_node(
             AST_IF,
             expr,
@@ -131,6 +121,7 @@ static ASTNode_t *stmt_if(Scanner_t *scanner)
                 0),
             0);
     }
+    scanner_match(scanner, TOK_ELSE);
     scanner_peek(scanner, &tok);
     if (tok.type == TOK_IF)
     {
@@ -205,14 +196,14 @@ static ASTNode_t *stmt_for(Scanner_t *scanner)
     pre_post = stmt_statement(scanner);
     pre_post->next = expr_expression(scanner);
     scanner_match(scanner, TOK_SEMICOLON);
-    scanner_scan(scanner, &tok);
+    scanner_peek(scanner, &tok);
     if (tok.type == TOK_RPAREN)
     {
+        scanner_scan(scanner, &tok);
         pre_post->next->next = ast_create_leaf_node(AST_EMPTY, 0);
     }
     else
     {
-        scanner_putback(scanner, &tok);
         pre_post->next->next = expr_assignment(scanner);
         scanner_match(scanner, TOK_RPAREN);
     }

@@ -153,10 +153,12 @@ static ASTNode_t *expr_multiplicative_expression(Scanner_t *scanner)
 
     left = expr_val(scanner);
 
-    while (scanner_scan(scanner, &token))
+    while (1)
     {
+        scanner_peek(scanner, &token);
         if (token.type == TOK_STAR || token.type == TOK_SLASH)
         {
+            scanner_scan(scanner, &token);
             type = get_node_type(token.type);
             right = expr_val(scanner);
             expr_type = datatype_expr_type(left->expr_type, right->expr_type);
@@ -165,7 +167,6 @@ static ASTNode_t *expr_multiplicative_expression(Scanner_t *scanner)
         }
         else
         {
-            scanner_putback(scanner, &token);
             return left;
         }
     }
@@ -182,10 +183,12 @@ static ASTNode_t *expr_additive_expression(Scanner_t *scanner)
 
     left = expr_multiplicative_expression(scanner);
 
-    while (scanner_scan(scanner, &token))
+    while (1)
     {
+        scanner_peek(scanner, &token);
         if (token.type == TOK_PLUS || token.type == TOK_MINUS)
         {
+            scanner_scan(scanner, &token);
             type = get_node_type(token.type);
             right = expr_multiplicative_expression(scanner);
             expr_type = datatype_expr_type(left->expr_type, right->expr_type);
@@ -194,7 +197,6 @@ static ASTNode_t *expr_additive_expression(Scanner_t *scanner)
         }
         else
         {
-            scanner_putback(scanner, &token);
             return left;
         }
     }
@@ -209,7 +211,7 @@ static ASTNode_t *expr_comparison_expression(Scanner_t *scanner)
     ASTNode_t *right;
     ASTNode_t *out;
     left = expr_additive_expression(scanner);
-    scanner_scan(scanner, &tok);
+    scanner_peek(scanner, &tok);
     if (
         tok.type == TOK_EQ ||
         tok.type == TOK_NE ||
@@ -218,6 +220,7 @@ static ASTNode_t *expr_comparison_expression(Scanner_t *scanner)
         tok.type == TOK_LT ||
         tok.type == TOK_LE)
     {
+        scanner_scan(scanner, &tok);
         right = expr_additive_expression(scanner);
         out = ast_create_node(
             get_node_type(tok.type),
@@ -228,10 +231,7 @@ static ASTNode_t *expr_comparison_expression(Scanner_t *scanner)
         return out;
     }
     else
-    {
-        scanner_putback(scanner, &tok);
         return left;
-    }
 }
 
 static ASTNode_t *expr_func_call(Scanner_t *scanner)
@@ -347,7 +347,14 @@ ASTNode_t *expr_expression(Scanner_t *scanner)
     // we need to cache only one token to know its' type.
     if (scanner->buffer_size == 0)
         scanner_cache_tok(scanner);
-    type = scanner_cache_tok(scanner);
+
+    type = scanner->putback_tok_buffer[scanner->buffer_head].type;
+    while (
+        type != TOK_ASSIGN &&
+        type != TOK_SEMICOLON &&
+        type != TOK_EMPTY &&
+        type != TOK_RPAREN)
+        type = scanner_cache_tok(scanner);
 
     if (type == TOK_ASSIGN)
     {

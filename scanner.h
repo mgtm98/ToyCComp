@@ -22,6 +22,8 @@ typedef enum
     TOK_EQ, /** '==' operator. */
     TOK_NE, /** '!=' operator. */
 
+    TOK_AMPER, /** '&' */
+
     TOK_INTLIT, /** Integer literal. */
     TOK_ID,     /** Identifier. */
 
@@ -72,6 +74,7 @@ static char *__token_names[] = {
     "TOK_LE",
     "TOK_EQ",
     "TOK_NE",
+    "TOK_AMPER",
     "TOK_INTLIT",
     "TOK_ID",
     "TOK_INT",
@@ -117,7 +120,6 @@ Scanner_t *scanner_init(char *file_path);
 void scanner_peek(Scanner_t *scanner, Token_t *tok);
 bool scanner_scan(Scanner_t *scanner, Token_t *tok);
 bool scanner_match(Scanner_t *scanner, TokenType_e what);
-void scanner_putback(Scanner_t *scanner, Token_t *tok);
 void scanner_copy_tok(Token_t *dest, Token_t *src);
 TokenType_e scanner_cache_tok(Scanner_t *scanner);
 
