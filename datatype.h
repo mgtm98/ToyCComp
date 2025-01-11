@@ -6,11 +6,14 @@
 
 #include "scanner.h"
 
-typedef struct
+typedef struct Datatype_t Datatype_t;
+struct Datatype_t
 {
     char *name;
     __uint8_t size;
-} Datatype_t;
+    __int8_t pointer_level;
+    Datatype_t *base_type;
+};
 
 typedef enum
 {
@@ -31,5 +34,6 @@ Datatype_t *datatype_get_type(Scanner_t *scanner);
 Datatype_t *datatype_get_primative_type(Datatype_Primative_e type);
 Datatype_t *datatype_expr_type(Datatype_t *left, Datatype_t *right);
 void datatype_check_assign_expr_type(Datatype_t *left, Datatype_t *right);
-
+Datatype_t *datatype_deref_pointer(Datatype_t *type, __uint8_t derefrence_level);
+Datatype_t *datatype_get_pointer_of(Datatype_t *type);
 #endif

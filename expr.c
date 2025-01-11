@@ -28,9 +28,12 @@ static ASTNode_type_e get_node_type(TokenType_e type);
 static ASTNode_t *expr_comparison_expression(Scanner_t *scanner);
 static ASTNode_t *expr_additive_expression(Scanner_t *scanner);
 static ASTNode_t *expr_multiplicative_expression(Scanner_t *scanner);
+static ASTNode_t *expr_lval(Scanner_t *scanner);
 static ASTNode_t *expr_val(Scanner_t *scanner);
 static ASTNode_t *expr_val_intlit(Scanner_t *scanner);
 static ASTNode_t *expr_val_var(Scanner_t *scanner);
+static ASTNode_t *expr_dref_ptr(Scanner_t *scanner);
+static ASTNode_t *expr_address_of(Scanner_t *scanner);
 static ASTNode_t *expr_val_expr(Scanner_t *scanner);
 static ASTNode_t *expr_func_call(Scanner_t *scanner);
 
@@ -66,6 +69,19 @@ static ASTNode_type_e get_node_type(TokenType_e type)
     }
 }
 
+static ASTNode_t *expr_lval(Scanner_t *scanner)
+{
+    Token_t token;
+    ASTNode_t *expr;
+    scanner_peek(scanner, &token);
+
+    if (token.type == TOK_STAR)
+        return expr_dref_ptr(scanner);
+    else
+        return expr_val_var(scanner);
+    return expr;
+}
+
 static ASTNode_t *expr_val(Scanner_t *scanner)
 {
     Token_t token;
@@ -78,9 +94,12 @@ static ASTNode_t *expr_val(Scanner_t *scanner)
         return expr_val_var(scanner);
     case TOK_LPAREN:
         return expr_val_expr(scanner);
+    case TOK_AMPER:
+        return expr_address_of(scanner);
     default:
-        debug_print(SEV_ERROR, "[EXPR] Expected a number or id token, got %s", TokToString(token));
-        exit(1);
+        return expr_lval(scanner);
+        // debug_print(SEV_ERROR, "[EXPR] Expected a number or id token, got %s", TokToString(token));
+        // exit(1);
     }
 }
 
@@ -132,6 +151,43 @@ static ASTNode_t *expr_val_var(Scanner_t *scanner)
 
     expr->expr_type = symtab_get_symbol(var_symbol_index)->data_type;
     return expr;
+}
+
+static ASTNode_t *expr_dref_ptr(Scanner_t *scanner)
+{
+    Token_t token;
+    ASTNode_t *expr, *var;
+    Datatype_t *type;
+    __uint8_t dref_level = 0;
+
+    scanner_peek(scanner, &token);
+    while (token.type == TOK_STAR)
+    {
+        dref_level++;
+        scanner_scan(scanner, &token);
+        scanner_peek(scanner, &token);
+    }
+    var = expr_val(scanner);
+    expr = var;
+    for (int i = 0; i < dref_level; i++)
+    {
+        type = datatype_deref_pointer(expr->expr_type, 1);
+        expr = ast_create_node(AST_PTRDREF, expr, NULL, 0);
+        expr->expr_type = type;
+    }
+    return expr;
+}
+
+static ASTNode_t *expr_address_of(Scanner_t *scanner)
+{
+    ASTNode_t *out;
+    ASTNode_t *var;
+
+    scanner_match(scanner, TOK_AMPER);
+    var = expr_val_var(scanner);
+    out = ast_create_node(AST_ADDRESSOF, var, NULL, 0);
+    out->expr_type = datatype_get_pointer_of(var->expr_type);
+    return out;
 }
 
 static ASTNode_t *expr_val_expr(Scanner_t *scanner)
@@ -301,28 +357,7 @@ ASTNode_t *expr_assignment(Scanner_t *scanner)
     ASTNode_t *val;
     ASTNode_t *expr;
 
-    scanner_scan(scanner, &tok);
-    if (tok.type != TOK_ID)
-    {
-        debug_print(SEV_ERROR, "Expected a TOK_ID token, found %s", TokToString(tok));
-        exit(1);
-    }
-    int var_symbol_index = symtab_find_global_symbol(tok.value.str_value);
-    if (var_symbol_index < 0)
-    {
-        debug_print(SEV_ERROR, "Variable %s is not defined before", tok.value.str_value);
-        exit(1);
-    }
-    if (symtab_get_symbol(var_symbol_index)->sym_type != SYMBOL_VAR)
-    {
-        debug_print(SEV_ERROR, "%s is defined as a function!!", tok.value.str_value);
-        exit(1);
-    }
-    var = ast_create_leaf_node(
-        AST_VAR,
-        var_symbol_index);
-    var->expr_type = symtab_get_symbol(var_symbol_index)->data_type;
-
+    var = expr_lval(scanner);
     scanner_match(scanner, TOK_ASSIGN);
     val = expr_expression(scanner);
 
@@ -331,9 +366,8 @@ ASTNode_t *expr_assignment(Scanner_t *scanner)
         var,
         val,
         0);
+    datatype_check_assign_expr_type(var->expr_type, val->expr_type);
     expr->expr_type = var->expr_type;
-
-    datatype_check_assign_expr_type(symtab_get_symbol(var_symbol_index)->data_type, expr->expr_type);
     return expr;
 }
 

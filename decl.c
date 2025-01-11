@@ -43,9 +43,13 @@ ASTNode_t *decl_declarations(Scanner_t *scanner)
 
     while (1)
     {
-        scanner_cache_tok(scanner);
-        scanner_cache_tok(scanner);
-        type = scanner_cache_tok(scanner);
+        while (1)
+        {
+            type = scanner_cache_tok(scanner);
+            if (
+                type == TOK_SEMICOLON || type == TOK_EMPTY || type == TOK_LPAREN || type == TOK_EOF)
+                break;
+        }
 
         if (type == TOK_EOF)
             break;
@@ -190,7 +194,6 @@ ASTNode_t *args(Scanner_t *scanner)
             break;
         scanner_scan(scanner, &tok);
     } while (1);
-    // scanner_putback(scanner, &tok);
     return args_head;
 }
 

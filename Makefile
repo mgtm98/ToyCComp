@@ -13,3 +13,6 @@ ast: compile
 
 clean:
 	rm out*
+
+test: compile
+	csh tests/runner.csh

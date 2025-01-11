@@ -46,10 +46,9 @@ for_statement: 'for' '(' statement expression ';' assignment_expression ')' stat
 
 expression: comparison_expression
           | assignment_expression
-          | func_call_expression
           ;
 
-assignment_expression: identifier '=' expression 
+assignment_expression: lvalue '=' expression 
 
 func_call_expression: identifier '(' args? ')'
 
@@ -75,9 +74,18 @@ multiplicative_expression: val
                          | val '/' multiplicative_expression
                          ;
 
+lvalue: dref_expression
+      | identifier
+      ;
+
+dref_expression: '*'+ val
+
 val: number
    | identifier
    | '(' expression ')'
+   | func_call_expression
+   | lvalue
+   | '&' identifier
    ;
 
 number: INTLIT
