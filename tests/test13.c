@@ -7,8 +7,8 @@ int main()
 {
   int dummy;
   int result;
-  dummy = print(23);
+  print(23);
   result = fred(10);
-  dummy = print(result);
+  print(result);
   return 0;
 }

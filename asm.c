@@ -275,6 +275,56 @@ Register asm_get_global_var(CodeGenerator_t *gen, char *var_name)
     return r;
 }
 
+Register asm_address_of(CodeGenerator_t *gen, char *var_name)
+{
+    Register out = allocate_register();
+    fprintf(gen->file, "\tlea %s, [%s]\n", reg_list[out], var_name);
+    return out;
+}
+
+Register asm_load_mem(CodeGenerator_t *gen, Register addr, RegSize_e size)
+{
+    Register out = allocate_register();
+    switch (size)
+    {
+    case SIZE_8bit:
+        fprintf(gen->file, "\tmov %s, byte [%s]\n", breg_list[out], reg_list[addr]);
+        break;
+    case SIZE_16bit:
+        fprintf(gen->file, "\tmov %s, word [%s]\n", wreg_list[out], reg_list[addr]);
+        break;
+    case SIZE_32bit:
+        fprintf(gen->file, "\tmov %s, dword [%s]\n", dreg_list[out], reg_list[addr]);
+        break;
+    case SIZE_64bit:
+        fprintf(gen->file, "\tmov %s, qword [%s]\n", reg_list[out], reg_list[addr]);
+        break;
+    }
+    free_register(addr);
+    return out;
+}
+
+void asm_store_mem(CodeGenerator_t *gen, Register addr, Register val, RegSize_e size)
+{
+    switch (size)
+    {
+    case SIZE_8bit:
+        fprintf(gen->file, "\tmov byte [%s], %s\n", reg_list[addr], breg_list[val]);
+        break;
+    case SIZE_16bit:
+        fprintf(gen->file, "\tmov word [%s], %s\n", reg_list[addr], wreg_list[val]);
+        break;
+    case SIZE_32bit:
+        fprintf(gen->file, "\tmov dword [%s], %s\n", reg_list[addr], dreg_list[val]);
+        break;
+    case SIZE_64bit:
+        fprintf(gen->file, "\tmov qword [%s], %s\n", reg_list[addr], reg_list[val]);
+        break;
+    }
+    free_register(val);
+    free_register(addr);
+}
+
 LabelId asm_generate_label()
 {
     return label_count++;
@@ -335,14 +385,4 @@ Register asm_generate_func_call(CodeGenerator_t *gen, char *func_name, Register 
         free_register(out);
         return asm_NoReg;
     }
-}
-
-void asm_print(CodeGenerator_t *gen, Register r)
-{
-    fprintf(gen->file, "\n\tmov rsi, %s\n", reg_list[r]);
-    fprintf(gen->file, "\tlea rdi, [rel format]\n");
-    fprintf(gen->file, "\txor rax, rax\n");
-    fprintf(gen->file, "\tcall printf\n\n");
-    free_register(r);
-    print_used = true;
 }

@@ -30,7 +30,6 @@ static ASTNode_t *get_loop_context(ASTNode_t *root);
 
 static void generate_statements(CodeGenerator_t *gen, ASTNode_t *root);
 static void generate_statement(CodeGenerator_t *gen, ASTNode_t *root);
-static void generate_stmt_print(CodeGenerator_t *gen, ASTNode_t *root);
 static void generate_stmt_if(CodeGenerator_t *gen, ASTNode_t *root);
 static void generate_stmt_while(CodeGenerator_t *gen, ASTNode_t *root);
 static void generate_stmt_do_while(CodeGenerator_t *gen, ASTNode_t *root);
@@ -44,6 +43,8 @@ static Register generate_expr(CodeGenerator_t *gen, ASTNode_t *root);
 static Register generate_expr_comparison(CodeGenerator_t *gen, ASTNode_t *root);
 static Register generate_expr_arithmetic(CodeGenerator_t *gen, ASTNode_t *root);
 static Register generate_expr_fcall(CodeGenerator_t *gen, ASTNode_t *root);
+static Register generate_expr_addressof(CodeGenerator_t *gen, ASTNode_t *root);
+static Register generate_expr_ptrdref(CodeGenerator_t *gen, ASTNode_t *root);
 
 static void generate_declerations(CodeGenerator_t *gen, ASTNode_t *root);
 static void generate_decleration(CodeGenerator_t *gen, ASTNode_t *root);
@@ -71,10 +72,15 @@ static ASTNode_t *get_loop_context(ASTNode_t *node)
 
 static Register generate_expr(CodeGenerator_t *gen, ASTNode_t *root)
 {
-    if (root->type == AST_FUNC_CALL)
+    switch (root->type)
+    {
+    case AST_FUNC_CALL:
         return generate_expr_fcall(gen, root);
-    else
+    case AST_ADDRESSOF:
+        return generate_expr_addressof(gen, root);
+    default:
         return generate_expr_comparison(gen, root);
+    }
 }
 
 static Register generate_expr_comparison(CodeGenerator_t *gen, ASTNode_t *root)
@@ -92,8 +98,8 @@ static Register generate_expr_comparison(CodeGenerator_t *gen, ASTNode_t *root)
         return generate_expr_arithmetic(gen, root);
     }
 
-    left = generate_expr_arithmetic(gen, root->left);
-    right = generate_expr_arithmetic(gen, root->right);
+    left = generate_expr(gen, root->left);
+    right = generate_expr(gen, root->right);
 
     switch (root->type)
     {
@@ -123,11 +129,11 @@ static Register generate_expr_arithmetic(CodeGenerator_t *gen, ASTNode_t *root)
 {
     Register left, right;
 
-    if (root->left && root->type != AST_FUNC_CALL)
-        left = generate_expr_arithmetic(gen, root->left);
+    if (root->left && root->type != AST_FUNC_CALL && root->type != AST_PTRDREF)
+        left = generate_expr(gen, root->left);
 
     if (root->right)
-        right = generate_expr_arithmetic(gen, root->right);
+        right = generate_expr(gen, root->right);
 
     switch (root->type)
     {
@@ -143,8 +149,14 @@ static Register generate_expr_arithmetic(CodeGenerator_t *gen, ASTNode_t *root)
         return asm_init_register(gen, root->value);
     case AST_VAR:
         return asm_get_global_var(gen, symtab_get_symbol(root->value)->sym_name);
-    case AST_FUNC_CALL:
-        return generate_expr_fcall(gen, root);
+    case AST_PTRDREF:
+        if (root->expr_type->pointer_level > 0)
+            return generate_expr_ptrdref(gen, root);
+        else
+            return asm_load_mem(
+                gen,
+                generate_expr_ptrdref(gen, root),
+                root->expr_type->size);
 
     default:
         debug_print(
@@ -168,6 +180,20 @@ static Register generate_expr_fcall(CodeGenerator_t *gen, ASTNode_t *root)
         true);
 }
 
+static Register generate_expr_addressof(CodeGenerator_t *gen, ASTNode_t *root)
+{
+    return asm_address_of(gen, symtab_get_symbol(root->left->value)->sym_name);
+}
+
+static Register generate_expr_ptrdref(CodeGenerator_t *gen, ASTNode_t *root)
+{
+    Register expr = generate_expr(gen, root->left);
+    if (root->expr_type->pointer_level == 0)
+        return expr;
+    else
+        return asm_load_mem(gen, expr, root->expr_type->size);
+}
+
 static void generate_statements(CodeGenerator_t *gen, ASTNode_t *root)
 {
     while (root)
@@ -181,9 +207,6 @@ static void generate_statement(CodeGenerator_t *gen, ASTNode_t *root)
 {
     switch (root->type)
     {
-    case AST_PRINT:
-        generate_stmt_print(gen, root);
-        break;
     case AST_VAR_DECL:
         generate_decl_var(gen, root);
         break;
@@ -217,12 +240,6 @@ static void generate_statement(CodeGenerator_t *gen, ASTNode_t *root)
         debug_print(SEV_ERROR, "[CG] Unexpected node: %s", NodeToString(*root));
         exit(0);
     }
-}
-
-static void generate_stmt_print(CodeGenerator_t *gen, ASTNode_t *root)
-{
-    Register r = generate_expr(gen, root->left);
-    asm_print(gen, r);
 }
 
 static void generate_decl_var(CodeGenerator_t *gen, ASTNode_t *root)
@@ -325,8 +342,26 @@ static void generate_stmt_break(CodeGenerator_t *gen, ASTNode_t *root)
 
 static void generate_stmt_assign(CodeGenerator_t *gen, ASTNode_t *root)
 {
+    Symbol_t *symbol;
     Register i = generate_expr(gen, root->right);
-    asm_set_global_var(gen, symtab_get_symbol(root->left->value)->sym_name, i);
+
+    switch (root->left->type)
+    {
+    case AST_VAR:
+        symbol = symtab_get_symbol(root->left->value);
+        asm_set_global_var(gen, symbol->sym_name, i);
+        break;
+
+    case AST_PTRDREF:
+        Register expr = generate_expr_ptrdref(gen, root->left);
+        asm_store_mem(gen, expr, i, root->left->expr_type->size);
+        break;
+
+    default:
+        debug_print(SEV_ERROR, "[CG] Unsupported lvalue type %s", NodeToString(*(root->left)));
+        exit(1);
+        break;
+    }
 }
 
 static void generate_stmt_return(CodeGenerator_t *gen, ASTNode_t *root)

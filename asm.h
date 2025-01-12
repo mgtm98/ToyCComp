@@ -50,12 +50,14 @@ void asm_jmp_ne(CodeGenerator_t *gen, Register r, int val, LabelId lbl);
 void asm_add_global_var(CodeGenerator_t *gen, char *var_name, RegSize_e size);
 void asm_set_global_var(CodeGenerator_t *gen, char *var_name, Register r);
 Register asm_get_global_var(CodeGenerator_t *gen, char *var_name);
+Register asm_address_of(CodeGenerator_t *gen, char *var_name);
+
+Register asm_load_mem(CodeGenerator_t *gen, Register addr, RegSize_e size);
+void asm_store_mem(CodeGenerator_t *gen, Register addr, Register val, RegSize_e size);
 
 void asm_generate_function_prologue(CodeGenerator_t *gen, char *func_name);
 void asm_generate_function_epilogue(CodeGenerator_t *gen);
 Register asm_generate_func_call(CodeGenerator_t *gen, char *func_name, Register arg1, bool need_return);
 void asm_generate_func_return(CodeGenerator_t *gen, Register r, RegSize_e size);
-
-void asm_print(CodeGenerator_t *gen, Register r);
 
 #endif
