@@ -47,7 +47,12 @@ ASTNode_t *decl_declarations(Scanner_t *scanner)
         {
             type = scanner_cache_tok(scanner);
             if (
-                type == TOK_SEMICOLON || type == TOK_EMPTY || type == TOK_LPAREN || type == TOK_EOF)
+                type == TOK_SEMICOLON ||
+                type == TOK_EMPTY ||
+                type == TOK_LPAREN ||
+                type == TOK_EOF ||
+                type == TOK_COMMA ||
+                type == TOK_ASSIGN)
                 break;
         }
 
@@ -131,7 +136,7 @@ ASTNode_t *decl_var(Scanner_t *scanner)
 
     var_type = datatype_get_type(scanner);
 
-    do
+    while (1)
     {
         decl_id(scanner, &tok);
 
@@ -162,7 +167,11 @@ ASTNode_t *decl_var(Scanner_t *scanner)
             scanner_peek(scanner, &tok);
         }
 
-    } while (tok.type == TOK_COMMA);
+        if (tok.type == TOK_COMMA)
+            scanner_scan(scanner, &tok);
+        else
+            break;
+    }
     scanner_match(scanner, TOK_SEMICOLON);
 
     return var_list_head;
