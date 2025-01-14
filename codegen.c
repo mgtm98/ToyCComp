@@ -149,6 +149,9 @@ static Register generate_expr_arithmetic(CodeGenerator_t *gen, ASTNode_t *root)
         return asm_init_register(gen, root->value);
     case AST_VAR:
         return asm_get_global_var(gen, symtab_get_symbol(root->value)->sym_name);
+    case AST_OFFSET_SCALE:
+        Register offset = asm_init_register(gen, root->value);
+        return asm_mul(gen, left, offset);
     case AST_PTRDREF:
         if (root->expr_type->pointer_level > 0)
             return generate_expr_ptrdref(gen, root);

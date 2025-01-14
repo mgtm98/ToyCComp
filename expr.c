@@ -217,6 +217,11 @@ static ASTNode_t *expr_multiplicative_expression(Scanner_t *scanner)
             scanner_scan(scanner, &token);
             type = get_node_type(token.type);
             right = expr_val(scanner);
+            if (left->expr_type->pointer_level > 0 || right->expr_type->pointer_level > 0)
+            {
+                debug_print(SEV_ERROR, "[EXPR] Can't create a mult expr with pointers");
+                exit(1);
+            }
             expr_type = datatype_expr_type(left->expr_type, right->expr_type);
             left = ast_create_node(type, left, right, 0);
             left->expr_type = expr_type;
@@ -247,6 +252,34 @@ static ASTNode_t *expr_additive_expression(Scanner_t *scanner)
             scanner_scan(scanner, &token);
             type = get_node_type(token.type);
             right = expr_multiplicative_expression(scanner);
+            if (left->expr_type->pointer_level > 0 || right->expr_type->pointer_level > 0)
+            {
+                ASTNode_t *ptrdref, **other_expr;
+                Datatype_t *expr_type;
+                __uint8_t offset;
+                if (left->expr_type->pointer_level > 0)
+                {
+                    ptrdref = left;
+                    other_expr = &right;
+                }
+                else
+                {
+                    ptrdref = right;
+                    other_expr = &left;
+                }
+                if (ptrdref->expr_type->pointer_level > 1)
+                    offset = 8;
+                else
+                    offset = ptrdref->expr_type->base_type->size / 8;
+                expr_type = (*other_expr)->expr_type;
+
+                (*other_expr) = ast_create_node(
+                    AST_OFFSET_SCALE,
+                    *other_expr,
+                    NULL,
+                    offset);
+                (*other_expr)->expr_type = expr_type;
+            }
             expr_type = datatype_expr_type(left->expr_type, right->expr_type);
             left = ast_create_node(type, left, right, 0);
             left->expr_type = expr_type;

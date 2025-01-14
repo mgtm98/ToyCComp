@@ -29,6 +29,7 @@ typedef enum
 
     AST_ADDRESSOF,
     AST_PTRDREF,
+    AST_OFFSET_SCALE,
 
     AST_VAR_DECL,
     AST_FUNC_DECL,
@@ -78,6 +79,7 @@ static char *__ast_type_names[] = {
     "AST_DATATYPE",
     "AST_ADDRESSOF",
     "AST_PTRDREF",
+    "AST_OFFSET_SCALE",
     "AST_VAR_DECL",
     "AST_FUNC_DECL",
     "AST_FUNC_CALL",
