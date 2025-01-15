@@ -12,6 +12,7 @@ struct Datatype_t
     char *name;
     __uint8_t size;
     __int8_t pointer_level;
+    __uint32_t array_size;
     Datatype_t *base_type;
 };
 

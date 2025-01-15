@@ -32,6 +32,7 @@ static ASTNode_t *expr_lval(Scanner_t *scanner);
 static ASTNode_t *expr_val(Scanner_t *scanner);
 static ASTNode_t *expr_val_intlit(Scanner_t *scanner);
 static ASTNode_t *expr_val_var(Scanner_t *scanner);
+static ASTNode_t *expr_val_var_index(Scanner_t *scanner);
 static ASTNode_t *expr_dref_ptr(Scanner_t *scanner);
 static ASTNode_t *expr_address_of(Scanner_t *scanner);
 static ASTNode_t *expr_val_expr(Scanner_t *scanner);
@@ -73,12 +74,31 @@ static ASTNode_t *expr_lval(Scanner_t *scanner)
 {
     Token_t token;
     ASTNode_t *expr;
+    TokenType_e type;
     scanner_peek(scanner, &token);
 
     if (token.type == TOK_STAR)
         return expr_dref_ptr(scanner);
     else
-        return expr_val_var(scanner);
+    {
+        while (scanner->buffer_size < 2)
+        {
+            type = scanner_cache_tok(scanner);
+            if (type == TOK_EOF)
+                break;
+        }
+
+        scanner_peek_at(scanner, &token, 1);
+
+        if (token.type == TOK_LBRACKET)
+        {
+            return expr_val_var_index(scanner);
+        }
+        else
+        {
+            return expr_val_var(scanner);
+        }
+    }
     return expr;
 }
 
@@ -90,8 +110,8 @@ static ASTNode_t *expr_val(Scanner_t *scanner)
     {
     case TOK_INTLIT:
         return expr_val_intlit(scanner);
-    case TOK_ID:
-        return expr_val_var(scanner);
+    // case TOK_ID:
+    //     return expr_val_var(scanner);
     case TOK_LPAREN:
         return expr_val_expr(scanner);
     case TOK_AMPER:
@@ -150,6 +170,41 @@ static ASTNode_t *expr_val_var(Scanner_t *scanner)
     }
 
     expr->expr_type = symtab_get_symbol(var_symbol_index)->data_type;
+    return expr;
+}
+
+static ASTNode_t *expr_val_var_index(Scanner_t *scanner)
+{
+    Token_t token;
+    ASTNode_t *expr, *var, *index;
+    Datatype_t *dt;
+
+    var = expr_val_var(scanner);
+    scanner_match(scanner, TOK_LBRACKET);
+    index = expr_comparison_expression(scanner);
+    scanner_match(scanner, TOK_RBRACKET);
+
+    dt = var->expr_type;
+    var = ast_create_node(AST_ADDRESSOF, var, NULL, 0);
+    var->expr_type = dt;
+
+    expr = ast_create_node(
+        AST_ADD,
+        var,
+        ast_create_node(
+            AST_MULT,
+            index,
+            ast_create_leaf_node(AST_INT_LIT, dt->size / 8),
+            0),
+        0);
+    expr->expr_type = datatype_expr_type(var->expr_type, index->expr_type);
+    dt = datatype_deref_pointer(expr->expr_type, 1);
+    expr = ast_create_node(
+        AST_PTRDREF,
+        expr,
+        NULL,
+        0);
+    expr->expr_type = dt;
     return expr;
 }
 
@@ -406,24 +461,21 @@ ASTNode_t *expr_assignment(Scanner_t *scanner)
 
 ASTNode_t *expr_expression(Scanner_t *scanner)
 {
-    TokenType_e type;
+    Token_t tok;
     ASTNode_t *expr;
+    int i = 0;
 
-    // we need to check for ID ASSIGN expr
-    // ID token is already cached in stmt_statement,
-    // we need to cache only one token to know its' type.
-    if (scanner->buffer_size == 0)
-        scanner_cache_tok(scanner);
+    do
+    {
+        scanner_peek_at(scanner, &tok, i);
+        i++;
+    } while (tok.type != TOK_ASSIGN &&
+             tok.type != TOK_SEMICOLON &&
+             tok.type != TOK_EMPTY &&
+             tok.type != TOK_RPAREN &&
+             tok.type != TOK_EOF);
 
-    type = scanner->putback_tok_buffer[scanner->buffer_head].type;
-    while (
-        type != TOK_ASSIGN &&
-        type != TOK_SEMICOLON &&
-        type != TOK_EMPTY &&
-        type != TOK_RPAREN)
-        type = scanner_cache_tok(scanner);
-
-    if (type == TOK_ASSIGN)
+    if (tok.type == TOK_ASSIGN)
     {
         expr = expr_assignment(scanner);
     }

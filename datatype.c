@@ -7,10 +7,10 @@
 // Supported primative sizes are related to the arch of the machine
 // TODO: Move this to code gen
 Datatype_t __supported_primative_types[] = {
-    {"void", 0, 0, NULL},
-    {"char", 8, 0, NULL},
-    {"int", 32, 0, NULL},
-    {"long", 64, 0, NULL}};
+    {"void", 0, 0, 0, NULL},
+    {"char", 8, 0, 0, NULL},
+    {"int", 32, 0, 0, NULL},
+    {"long", 64, 0, 0, NULL}};
 
 static char *datatype_to_str(Datatype_t *type)
 {

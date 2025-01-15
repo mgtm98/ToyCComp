@@ -46,6 +46,8 @@ typedef enum
     TOK_RPAREN,    /** ')' token. */
     TOK_LBRACE,    /** '{' token. */
     TOK_RBRACE,    /** '}' token. */
+    TOK_LBRACKET,  /** ']' token. */
+    TOK_RBRACKET,  /** ']' token. */
     TOK_ASSIGN     /** '=' assignment operator. */
 } TokenType_e;
 
@@ -93,6 +95,8 @@ static char *__token_names[] = {
     "TOK_RPAREN",
     "TOK_LBRACE",
     "TOK_RBRACE",
+    "TOK_LBRACKET",
+    "TOK_RBRACKET",
     "TOK_ASSIGN"};
 
 #define TokToString(tok) __token_names[(tok).type]          /** Convert token to string. */
@@ -118,6 +122,7 @@ typedef struct
 Scanner_t *scanner_init(char *file_path);
 
 void scanner_peek(Scanner_t *scanner, Token_t *tok);
+void scanner_peek_at(Scanner_t *scanner, Token_t *tok, size_t index);
 bool scanner_scan(Scanner_t *scanner, Token_t *tok);
 bool scanner_match(Scanner_t *scanner, TokenType_e what);
 void scanner_copy_tok(Token_t *dest, Token_t *src);

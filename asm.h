@@ -47,7 +47,7 @@ void asm_jmp_ne(CodeGenerator_t *gen, Register r, int val, LabelId lbl);
 // void asm_jmp_lt(CodeGenerator_t *gen, Register r1, Register r2, LabelId lbl);
 // void asm_jmp_le(CodeGenerator_t *gen, Register r1, Register r2, LabelId lbl);
 
-void asm_add_global_var(CodeGenerator_t *gen, char *var_name, RegSize_e size);
+void asm_add_global_var(CodeGenerator_t *gen, char *var_name, RegSize_e size, size_t number_of_elements);
 void asm_set_global_var(CodeGenerator_t *gen, char *var_name, Register r);
 Register asm_get_global_var(CodeGenerator_t *gen, char *var_name);
 Register asm_address_of(CodeGenerator_t *gen, char *var_name);

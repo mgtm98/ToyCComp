@@ -166,6 +166,27 @@ ASTNode_t *decl_var(Scanner_t *scanner)
                 current_var->left->expr_type);
             scanner_peek(scanner, &tok);
         }
+        else if (tok.type == TOK_LBRACKET)
+        {
+            scanner_scan(scanner, &tok);
+            scanner_scan(scanner, &tok);
+            if (tok.type == TOK_INTLIT)
+            {
+                Datatype_t *array_dt = datatype_get_pointer_of(var_type);
+                array_dt->array_size = tok.value.int_value;
+                current_var->expr_type = array_dt;
+                symtab_get_symbol(symbol_index)->data_type = array_dt;
+            }
+            else
+            {
+                debug_print(
+                    SEV_ERROR,
+                    "[DATATYPE] Expected an integer literal, found %s",
+                    TokToString(tok));
+                exit(1);
+            }
+            scanner_match(scanner, TOK_RBRACKET);
+        }
 
         if (tok.type == TOK_COMMA)
             scanner_scan(scanner, &tok);

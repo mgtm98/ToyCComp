@@ -248,10 +248,12 @@ static void generate_statement(CodeGenerator_t *gen, ASTNode_t *root)
 static void generate_decl_var(CodeGenerator_t *gen, ASTNode_t *root)
 {
     // TODO check if the variable has initial value
+    Symbol_t *symbol = symtab_get_symbol(root->value);
     asm_add_global_var(
         gen,
-        symtab_get_symbol(root->value)->sym_name,
-        (RegSize_e)root->expr_type->size);
+        symbol->sym_name,
+        (RegSize_e)root->expr_type->size,
+        symbol->data_type->array_size);
     if (root->left)
     {
         Register value = generate_expr(gen, root->left);

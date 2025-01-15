@@ -212,6 +212,12 @@ static bool __scanner_scan(Scanner_t *scanner, Token_t *tok, bool ignore_cache)
     case '}':
         tok->type = TOK_RBRACE;
         break;
+    case '[':
+        tok->type = TOK_LBRACKET;
+        break;
+    case ']':
+        tok->type = TOK_RBRACKET;
+        break;
     case '&':
         tok->type = TOK_AMPER;
         break;
@@ -323,6 +329,15 @@ void scanner_peek(Scanner_t *scanner, Token_t *tok)
     {
         scanner_copy_tok(tok, &scanner->putback_tok_buffer[scanner->buffer_head]);
     }
+}
+
+void scanner_peek_at(Scanner_t *scanner, Token_t *tok, size_t index)
+{
+    while (index >= scanner->buffer_size)
+    {
+        scanner_cache_tok(scanner);
+    }
+    scanner_copy_tok(tok, &scanner->putback_tok_buffer[scanner->buffer_head + index]);
 }
 
 void scanner_copy_tok(Token_t *dest, Token_t *src)

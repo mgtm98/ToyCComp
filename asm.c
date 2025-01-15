@@ -13,6 +13,7 @@ typedef struct
 {
     char *symbol_name;
     RegSize_e size;
+    int number_of_items;
 } bss_symbol;
 
 static int free_reg[GLOBAL_REG_COUNT] = {1, 1, 1, 1};
@@ -63,13 +64,13 @@ void asm_wrapup(CodeGenerator_t *gen)
         for (int i = 0; i < bss_symbol_count; i++)
         {
             if (bss_symbols[i].size == SIZE_8bit)
-                fprintf(gen->file, "\t%s resb 1\n", bss_symbols[i].symbol_name);
+                fprintf(gen->file, "\t%s resb %d\n", bss_symbols[i].symbol_name, bss_symbols[i].number_of_items);
             else if (bss_symbols[i].size == SIZE_16bit)
-                fprintf(gen->file, "\t%s resw 1\n", bss_symbols[i].symbol_name);
+                fprintf(gen->file, "\t%s resw %d\n", bss_symbols[i].symbol_name, bss_symbols[i].number_of_items);
             else if (bss_symbols[i].size == SIZE_32bit)
-                fprintf(gen->file, "\t%s resd 1\n", bss_symbols[i].symbol_name);
+                fprintf(gen->file, "\t%s resd %d\n", bss_symbols[i].symbol_name, bss_symbols[i].number_of_items);
             else if (bss_symbols[i].size == SIZE_64bit)
-                fprintf(gen->file, "\t%s resq 1\n", bss_symbols[i].symbol_name);
+                fprintf(gen->file, "\t%s resq %d\n", bss_symbols[i].symbol_name, bss_symbols[i].number_of_items);
         }
     }
     fprintf(gen->file, "section .note.GNU-stack noalloc noexec nowrite progbits");
@@ -220,8 +221,10 @@ void asm_jmp_ne(CodeGenerator_t *gen, Register r1, int comp_val, LabelId label_n
     return asm_jmp_with_cond(gen, r1, comp_val, "jne", label_number);
 }
 
-void asm_add_global_var(CodeGenerator_t *gen, char *var_name, RegSize_e size)
+void asm_add_global_var(CodeGenerator_t *gen, char *var_name, RegSize_e size, size_t number_of_elements)
 {
+    if (number_of_elements == 0)
+        number_of_elements = 1;
     if (get_bss_symbol(var_name) != NULL)
     {
         debug_print(SEV_ERROR, "[ASM] Redefinition of an existing bss symbol %s", var_name);
@@ -230,6 +233,7 @@ void asm_add_global_var(CodeGenerator_t *gen, char *var_name, RegSize_e size)
     debug_print(SEV_DEBUG, "Adding symbol %s in bss section", var_name);
     bss_symbols[bss_symbol_count].symbol_name = strdup(var_name);
     bss_symbols[bss_symbol_count].size = size;
+    bss_symbols[bss_symbol_count].number_of_items = number_of_elements;
     bss_symbol_count++;
 }
 

@@ -6,6 +6,7 @@ function_declaration: datatype identifier '(' ')' statement_block
 
 var_declaration: datatype identifier [',' identifier]* ';'
                | datatype identifier '=' expr [',' identifier '=' expr] ';'
+               | datatype identifier '[' number ']' ';'
                | ;
 
 datatype: 'int'
@@ -76,6 +77,7 @@ multiplicative_expression: val
 
 lvalue: dref_expression
       | identifier
+      | identifier '[' comparison_expression ']'
       ;
 
 dref_expression: '*'+ val
