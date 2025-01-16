@@ -28,6 +28,7 @@ Register asm_add(CodeGenerator_t *gen, Register r1, Register r2);
 Register asm_sub(CodeGenerator_t *gen, Register r1, Register r2);
 Register asm_mul(CodeGenerator_t *gen, Register r1, Register r2);
 Register asm_div(CodeGenerator_t *gen, Register r1, Register r2);
+void asm_sll(CodeGenerator_t *gen, Register r1, __uint8_t val);
 
 Register asm_comp_eq(CodeGenerator_t *gen, Register r1, Register r2);
 Register asm_comp_ne(CodeGenerator_t *gen, Register r1, Register r2);

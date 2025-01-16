@@ -184,26 +184,12 @@ static ASTNode_t *expr_val_var_index(Scanner_t *scanner)
     index = expr_comparison_expression(scanner);
     scanner_match(scanner, TOK_RBRACKET);
 
-    dt = var->expr_type;
-    var = ast_create_node(AST_ADDRESSOF, var, NULL, 0);
-    var->expr_type = dt;
-
+    dt = datatype_deref_pointer(var->expr_type, 1);
     expr = ast_create_node(
-        AST_ADD,
+        AST_ARRAY_INDEX,
         var,
-        ast_create_node(
-            AST_MULT,
-            index,
-            ast_create_leaf_node(AST_INT_LIT, dt->size / 8),
-            0),
-        0);
-    expr->expr_type = datatype_expr_type(var->expr_type, index->expr_type);
-    dt = datatype_deref_pointer(expr->expr_type, 1);
-    expr = ast_create_node(
-        AST_PTRDREF,
-        expr,
-        NULL,
-        0);
+        index,
+        dt->size);
     expr->expr_type = dt;
     return expr;
 }

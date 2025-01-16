@@ -20,6 +20,7 @@
 #include "debug.h"
 #include "symtab.h"
 
+#include <math.h>
 #include <stdlib.h>
 
 //////////////////////////////
@@ -45,6 +46,7 @@ static Register generate_expr_arithmetic(CodeGenerator_t *gen, ASTNode_t *root);
 static Register generate_expr_fcall(CodeGenerator_t *gen, ASTNode_t *root);
 static Register generate_expr_addressof(CodeGenerator_t *gen, ASTNode_t *root);
 static Register generate_expr_ptrdref(CodeGenerator_t *gen, ASTNode_t *root);
+static Register generate_expr_arr_index(CodeGenerator_t *gen, ASTNode_t *root);
 
 static void generate_declerations(CodeGenerator_t *gen, ASTNode_t *root);
 static void generate_decleration(CodeGenerator_t *gen, ASTNode_t *root);
@@ -129,10 +131,14 @@ static Register generate_expr_arithmetic(CodeGenerator_t *gen, ASTNode_t *root)
 {
     Register left, right;
 
-    if (root->left && root->type != AST_FUNC_CALL && root->type != AST_PTRDREF)
+    if (
+        root->left &&
+        root->type != AST_FUNC_CALL &&
+        root->type != AST_PTRDREF &&
+        root->type != AST_ARRAY_INDEX)
         left = generate_expr(gen, root->left);
 
-    if (root->right)
+    if (root->right && root->type != AST_ARRAY_INDEX)
         right = generate_expr(gen, root->right);
 
     switch (root->type)
@@ -160,6 +166,11 @@ static Register generate_expr_arithmetic(CodeGenerator_t *gen, ASTNode_t *root)
                 gen,
                 generate_expr_ptrdref(gen, root),
                 root->expr_type->size);
+    case AST_ARRAY_INDEX:
+        return asm_load_mem(
+            gen,
+            generate_expr_arr_index(gen, root),
+            root->expr_type->size);
 
     default:
         debug_print(
@@ -195,6 +206,16 @@ static Register generate_expr_ptrdref(CodeGenerator_t *gen, ASTNode_t *root)
         return expr;
     else
         return asm_load_mem(gen, expr, root->expr_type->size);
+}
+
+static Register generate_expr_arr_index(CodeGenerator_t *gen, ASTNode_t *root)
+{
+    Register index, base_address;
+
+    index = generate_expr(gen, root->right);
+    asm_sll(gen, index, (int)log2(root->value / 8));
+    base_address = asm_address_of(gen, symtab_get_symbol(root->left->value)->sym_name);
+    return asm_add(gen, base_address, index);
 }
 
 static void generate_statements(CodeGenerator_t *gen, ASTNode_t *root)
@@ -358,8 +379,13 @@ static void generate_stmt_assign(CodeGenerator_t *gen, ASTNode_t *root)
         break;
 
     case AST_PTRDREF:
-        Register expr = generate_expr_ptrdref(gen, root->left);
-        asm_store_mem(gen, expr, i, root->left->expr_type->size);
+        Register expr1 = generate_expr_ptrdref(gen, root->left);
+        asm_store_mem(gen, expr1, i, root->left->expr_type->size);
+        break;
+
+    case AST_ARRAY_INDEX:
+        Register expr2 = generate_expr_arr_index(gen, root->left);
+        asm_store_mem(gen, expr2, i, root->left->expr_type->size);
         break;
 
     default:

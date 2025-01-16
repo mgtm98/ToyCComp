@@ -160,6 +160,11 @@ Register asm_div(CodeGenerator_t *gen, Register r1, Register r2)
     return r1;
 }
 
+void asm_sll(CodeGenerator_t *gen, Register r1, __uint8_t val)
+{
+    fprintf(gen->file, "\tshl %s, %d\n", reg_list[r1], val);
+}
+
 static Register asm_comp(CodeGenerator_t *gen, Register r1, Register r2, char *func)
 {
     fprintf(gen->file, "\tcmp %s, %s\n", reg_list[r1], reg_list[r2]);

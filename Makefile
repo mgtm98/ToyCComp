@@ -1,5 +1,5 @@
 compile:
-	gcc -g *c -o ToyCComp
+	gcc -g *c -lm -o ToyCComp
 
 run: ast runs
 	
