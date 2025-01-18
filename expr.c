@@ -31,6 +31,7 @@ static ASTNode_t *expr_multiplicative_expression(Scanner_t *scanner);
 static ASTNode_t *expr_lval(Scanner_t *scanner);
 static ASTNode_t *expr_val(Scanner_t *scanner);
 static ASTNode_t *expr_val_intlit(Scanner_t *scanner);
+static ASTNode_t *expr_val_strlit(Scanner_t *scanner);
 static ASTNode_t *expr_val_var(Scanner_t *scanner);
 static ASTNode_t *expr_val_var_index(Scanner_t *scanner);
 static ASTNode_t *expr_dref_ptr(Scanner_t *scanner);
@@ -110,6 +111,8 @@ static ASTNode_t *expr_val(Scanner_t *scanner)
     {
     case TOK_INTLIT:
         return expr_val_intlit(scanner);
+    case TOK_STRLIT:
+        return expr_val_strlit(scanner);
     // case TOK_ID:
     //     return expr_val_var(scanner);
     case TOK_LPAREN:
@@ -141,8 +144,19 @@ static ASTNode_t *expr_val_intlit(Scanner_t *scanner)
         exit(1);
     }
 
-    node = ast_create_leaf_node(AST_INT_LIT, token.value.int_value);
+    node = ast_create_leaf_node(AST_INT_LIT, (ASTNodeValue)token.value.int_value);
     node->expr_type = datatype;
+    return node;
+}
+
+static ASTNode_t *expr_val_strlit(Scanner_t *scanner)
+{
+    Token_t token;
+    Datatype_t *datatype;
+    ASTNode_t *node;
+    scanner_scan(scanner, &token);
+    node = ast_create_leaf_node(AST_STR_LIT, (ASTNodeValue)token.value.str_value);
+    node->expr_type = datatype_get_pointer_of(datatype_get_primative_type(DT_CHAR));
     return node;
 }
 
@@ -166,7 +180,7 @@ static ASTNode_t *expr_val_var(Scanner_t *scanner)
     else
     {
         scanner_match(scanner, TOK_ID);
-        expr = ast_create_leaf_node(AST_VAR, var_symbol_index);
+        expr = ast_create_leaf_node(AST_VAR, (ASTNodeValue)var_symbol_index);
     }
 
     expr->expr_type = symtab_get_symbol(var_symbol_index)->data_type;
@@ -189,7 +203,7 @@ static ASTNode_t *expr_val_var_index(Scanner_t *scanner)
         AST_ARRAY_INDEX,
         var,
         index,
-        dt->size);
+        (ASTNodeValue)(int)dt->size);
     expr->expr_type = dt;
     return expr;
 }
@@ -213,7 +227,7 @@ static ASTNode_t *expr_dref_ptr(Scanner_t *scanner)
     for (int i = 0; i < dref_level; i++)
     {
         type = datatype_deref_pointer(expr->expr_type, 1);
-        expr = ast_create_node(AST_PTRDREF, expr, NULL, 0);
+        expr = ast_create_node(AST_PTRDREF, expr, NULL, (ASTNodeValue)0);
         expr->expr_type = type;
     }
     return expr;
@@ -226,7 +240,7 @@ static ASTNode_t *expr_address_of(Scanner_t *scanner)
 
     scanner_match(scanner, TOK_AMPER);
     var = expr_val_var(scanner);
-    out = ast_create_node(AST_ADDRESSOF, var, NULL, 0);
+    out = ast_create_node(AST_ADDRESSOF, var, NULL, (ASTNodeValue)0);
     out->expr_type = datatype_get_pointer_of(var->expr_type);
     return out;
 }
@@ -264,7 +278,7 @@ static ASTNode_t *expr_multiplicative_expression(Scanner_t *scanner)
                 exit(1);
             }
             expr_type = datatype_expr_type(left->expr_type, right->expr_type);
-            left = ast_create_node(type, left, right, 0);
+            left = ast_create_node(type, left, right, (ASTNodeValue)0);
             left->expr_type = expr_type;
         }
         else
@@ -318,11 +332,11 @@ static ASTNode_t *expr_additive_expression(Scanner_t *scanner)
                     AST_OFFSET_SCALE,
                     *other_expr,
                     NULL,
-                    offset);
+                    (ASTNodeValue)(int)offset);
                 (*other_expr)->expr_type = expr_type;
             }
             expr_type = datatype_expr_type(left->expr_type, right->expr_type);
-            left = ast_create_node(type, left, right, 0);
+            left = ast_create_node(type, left, right, (ASTNodeValue)0);
             left->expr_type = expr_type;
         }
         else
@@ -356,7 +370,7 @@ static ASTNode_t *expr_comparison_expression(Scanner_t *scanner)
             get_node_type(tok.type),
             left,
             right,
-            0);
+            (ASTNodeValue)0);
         out->expr_type = datatype_get_primative_type(DT_CHAR);
         return out;
     }
@@ -419,7 +433,7 @@ static ASTNode_t *expr_func_call(Scanner_t *scanner)
         AST_FUNC_CALL,
         func_args,
         NULL,
-        symbol_index);
+        (ASTNodeValue)symbol_index);
     func_call->expr_type = symtab_get_symbol(symbol_index)->data_type;
     return func_call;
 }
@@ -439,7 +453,7 @@ ASTNode_t *expr_assignment(Scanner_t *scanner)
         AST_ASSIGN,
         var,
         val,
-        0);
+        (ASTNodeValue)0);
     datatype_check_assign_expr_type(var->expr_type, val->expr_type);
     expr->expr_type = var->expr_type;
     return expr;

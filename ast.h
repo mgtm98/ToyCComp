@@ -22,6 +22,8 @@ typedef enum
     AST_COMP_NE,
 
     AST_INT_LIT,
+    AST_STR_LIT,
+
     AST_PRINT,
     AST_ASSIGN,
     AST_VAR,
@@ -48,6 +50,12 @@ typedef enum
 
 #define ASTCheckLoopContext(t) t >= AST_WHILE &&t <= AST_FOR
 
+typedef union ASTNodeValue
+{
+    int num;
+    char *str;
+} ASTNodeValue;
+
 typedef struct ASTNode_t ASTNode_t;
 struct ASTNode_t
 {
@@ -57,7 +65,7 @@ struct ASTNode_t
     ASTNode_t *right;
     ASTNode_t *parent;
     Datatype_t *expr_type;
-    int value;
+    ASTNodeValue value;
 };
 
 static char *__ast_type_names[] = {
@@ -74,6 +82,7 @@ static char *__ast_type_names[] = {
     "AST_COMP_EQ",
     "AST_COMP_NE",
     "AST_INT_LIT",
+    "AST_STR_LIT",
     "AST_PRINT",
     "AST_ASSIGN",
     "AST_VAR",
@@ -93,8 +102,8 @@ static char *__ast_type_names[] = {
     "AST_BREAK"};
 #define NodeToString(node) __ast_type_names[(node).type]
 
-ASTNode_t *ast_create_node(ASTNode_type_e type, ASTNode_t *left, ASTNode_t *right, int value);
-ASTNode_t *ast_create_leaf_node(ASTNode_type_e type, int value);
+ASTNode_t *ast_create_node(ASTNode_type_e type, ASTNode_t *left, ASTNode_t *right, ASTNodeValue value);
+ASTNode_t *ast_create_leaf_node(ASTNode_type_e type, ASTNodeValue value);
 ASTNode_t *ast_get_parent_of_type(ASTNode_t *node, ASTNode_type_e type);
 ASTNode_t *ast_flatten(ASTNode_t *node);
 void ast_free(ASTNode_t *node);

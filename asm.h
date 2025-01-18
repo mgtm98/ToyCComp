@@ -16,6 +16,19 @@ typedef enum
     SIZE_64bit = 64
 } RegSize_e;
 
+typedef enum ASMSymbolType
+{
+    ASM_SYMBOL_UNINTIALIZED,
+    ASM_SYMBOL_INT,
+    ASM_SYMBOL_STR
+} ASMSymbolType;
+
+typedef union ASMSymbolValue
+{
+    int num;
+    char *str;
+} ASMSymbolValue;
+
 extern Register asm_NoReg;
 extern Register asm_RAX;
 
@@ -50,6 +63,8 @@ void asm_jmp_ne(CodeGenerator_t *gen, Register r, int val, LabelId lbl);
 
 void asm_add_global_var(CodeGenerator_t *gen, char *var_name, RegSize_e size, size_t number_of_elements);
 void asm_set_global_var(CodeGenerator_t *gen, char *var_name, Register r);
+void asm_set_global_var_initial_val(CodeGenerator_t *gen, char *var_name, ASMSymbolValue value, ASMSymbolType type);
+char *asm_generate_string_lit(CodeGenerator_t *gen, char *str);
 Register asm_get_global_var(CodeGenerator_t *gen, char *var_name);
 Register asm_address_of(CodeGenerator_t *gen, char *var_name);
 

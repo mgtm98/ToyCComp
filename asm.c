@@ -7,14 +7,16 @@
 #include <string.h>
 
 #define GLOBAL_REG_COUNT 4
-#define MAX_BSS_SYMBOLS 1000
+#define MAX_SYMBOLS 1000
 
 typedef struct
 {
     char *symbol_name;
     RegSize_e size;
     int number_of_items;
-} bss_symbol;
+    ASMSymbolType symbol_type;
+    ASMSymbolValue value;
+} ASMSymbol;
 
 static int free_reg[GLOBAL_REG_COUNT] = {1, 1, 1, 1};
 static char *reg_list[] = {"r12", "r13", "r14", "r15", "rax"};
@@ -22,8 +24,8 @@ static char *dreg_list[] = {"r12d", "r13d", "r14d", "r15d", "eax"};
 static char *wreg_list[] = {"r12w", "r13w", "r14w", "r15w", "ax"};
 static char *breg_list[] = {"r12b", "r13b", "r14b", "r15b", "al"};
 
-static bss_symbol bss_symbols[MAX_BSS_SYMBOLS];
-static int bss_symbol_count = 0;
+static ASMSymbol asm_symbols[MAX_SYMBOLS];
+static int asm_symbol_count = 0;
 
 static bool print_used = false;
 static LabelId label_count = 0;
@@ -31,12 +33,12 @@ static LabelId label_count = 0;
 Register asm_RAX = (Register)4;
 Register asm_NoReg = (Register)-1;
 
-static bss_symbol *get_bss_symbol(char *name)
+static ASMSymbol *get_bss_symbol(char *name)
 {
-    for (int i = 0; i < bss_symbol_count; i++)
+    for (int i = 0; i < asm_symbol_count; i++)
     {
-        if (strcmp(bss_symbols[i].symbol_name, name) == 0)
-            return &bss_symbols[i];
+        if (strcmp(asm_symbols[i].symbol_name, name) == 0)
+            return &asm_symbols[i];
     }
     return NULL;
 }
@@ -45,34 +47,55 @@ void asm_wrapup(CodeGenerator_t *gen)
 {
     fputs("\n", gen->file);
 
-    // Add runtime support for `printf` if used
-    if (print_used)
-    {
-        fprintf(gen->file, "extern printf\n");
-        fprintf(gen->file, "\n");
-        fprintf(gen->file, "section .data\n");
-        fprintf(gen->file, "\tformat db \"%%d\", 10, 0\n");
-    }
+    // Only add extern for the needed functions
     fprintf(gen->file, "extern print\n");
+    fprintf(gen->file, "extern print_char\n");
+    fprintf(gen->file, "extern print_str\n");
+    fprintf(gen->file, "extern print_ln\n");
     fprintf(gen->file, "\n");
     fprintf(gen->file, "\n");
 
     // Generate the `.bss` section for uninitialized variables
-    if (bss_symbol_count)
+    if (asm_symbol_count)
     {
         fprintf(gen->file, "section .bss\n");
-        for (int i = 0; i < bss_symbol_count; i++)
+        for (int i = 0; i < asm_symbol_count; i++)
         {
-            if (bss_symbols[i].size == SIZE_8bit)
-                fprintf(gen->file, "\t%s resb %d\n", bss_symbols[i].symbol_name, bss_symbols[i].number_of_items);
-            else if (bss_symbols[i].size == SIZE_16bit)
-                fprintf(gen->file, "\t%s resw %d\n", bss_symbols[i].symbol_name, bss_symbols[i].number_of_items);
-            else if (bss_symbols[i].size == SIZE_32bit)
-                fprintf(gen->file, "\t%s resd %d\n", bss_symbols[i].symbol_name, bss_symbols[i].number_of_items);
-            else if (bss_symbols[i].size == SIZE_64bit)
-                fprintf(gen->file, "\t%s resq %d\n", bss_symbols[i].symbol_name, bss_symbols[i].number_of_items);
+            if (asm_symbols[i].symbol_type != ASM_SYMBOL_UNINTIALIZED)
+                continue;
+            if (asm_symbols[i].size == SIZE_8bit)
+                fprintf(gen->file, "\t%s resb %d\n", asm_symbols[i].symbol_name, asm_symbols[i].number_of_items);
+            else if (asm_symbols[i].size == SIZE_16bit)
+                fprintf(gen->file, "\t%s resw %d\n", asm_symbols[i].symbol_name, asm_symbols[i].number_of_items);
+            else if (asm_symbols[i].size == SIZE_32bit)
+                fprintf(gen->file, "\t%s resd %d\n", asm_symbols[i].symbol_name, asm_symbols[i].number_of_items);
+            else if (asm_symbols[i].size == SIZE_64bit)
+                fprintf(gen->file, "\t%s resq %d\n", asm_symbols[i].symbol_name, asm_symbols[i].number_of_items);
+        }
+        fprintf(gen->file, "\n\nsection .data\n");
+        for (int i = 0; i < asm_symbol_count; i++)
+        {
+            if (asm_symbols[i].symbol_type == ASM_SYMBOL_UNINTIALIZED)
+                continue;
+            if (asm_symbols[i].symbol_type == ASM_SYMBOL_INT)
+            {
+                if (asm_symbols[i].size == SIZE_8bit)
+                    fprintf(gen->file, "\t%s db %d\n", asm_symbols[i].symbol_name, asm_symbols[i].value.num);
+                else if (asm_symbols[i].size == SIZE_16bit)
+                    fprintf(gen->file, "\t%s dw %d\n", asm_symbols[i].symbol_name, asm_symbols[i].value.num);
+                else if (asm_symbols[i].size == SIZE_32bit)
+                    fprintf(gen->file, "\t%s dd %d\n", asm_symbols[i].symbol_name, asm_symbols[i].value.num);
+                else if (asm_symbols[i].size == SIZE_64bit)
+                    fprintf(gen->file, "\t%s dq %d\n", asm_symbols[i].symbol_name, asm_symbols[i].value.num);
+            }
+            else if (asm_symbols[i].symbol_type == ASM_SYMBOL_STR)
+            {
+                fprintf(gen->file, "\t%s db \'%s\', 0\n", asm_symbols[i].symbol_name, asm_symbols[i].value.str);
+            }
         }
     }
+
+    // Generate the `.data` section for uninitialized variables
     fprintf(gen->file, "section .note.GNU-stack noalloc noexec nowrite progbits");
 }
 
@@ -236,15 +259,15 @@ void asm_add_global_var(CodeGenerator_t *gen, char *var_name, RegSize_e size, si
         exit(0);
     }
     debug_print(SEV_DEBUG, "Adding symbol %s in bss section", var_name);
-    bss_symbols[bss_symbol_count].symbol_name = strdup(var_name);
-    bss_symbols[bss_symbol_count].size = size;
-    bss_symbols[bss_symbol_count].number_of_items = number_of_elements;
-    bss_symbol_count++;
+    asm_symbols[asm_symbol_count].symbol_name = strdup(var_name);
+    asm_symbols[asm_symbol_count].size = size;
+    asm_symbols[asm_symbol_count].number_of_items = number_of_elements;
+    asm_symbol_count++;
 }
 
 void asm_set_global_var(CodeGenerator_t *gen, char *var_name, Register r)
 {
-    bss_symbol *symbol = get_bss_symbol(var_name);
+    ASMSymbol *symbol = get_bss_symbol(var_name);
     if (symbol == NULL)
     {
         debug_print(SEV_ERROR, "[ASM] Symbol is not defined before!!");
@@ -261,10 +284,38 @@ void asm_set_global_var(CodeGenerator_t *gen, char *var_name, Register r)
     free_register(r);
 }
 
+void asm_set_global_var_initial_val(CodeGenerator_t *gen, char *var_name, ASMSymbolValue value, ASMSymbolType type)
+{
+    ASMSymbol *symbol = get_bss_symbol(var_name);
+    if (type == ASM_SYMBOL_INT)
+    {
+        symbol->value = value;
+        symbol->symbol_type = type;
+    }
+    else if (type == ASM_SYMBOL_STR)
+    {
+        char *new_str_lbl = asm_generate_string_lit(gen, value.str);
+        asm_set_global_var(gen, var_name, asm_address_of(gen, new_str_lbl));
+        free(new_str_lbl);
+    }
+}
+
+char *asm_generate_string_lit(CodeGenerator_t *gen, char *str)
+{
+    LabelId lbl = asm_generate_label();
+    char *new_str_lbl = malloc(100 * sizeof(char));
+    snprintf(new_str_lbl, 99, "__%d__STR_CONST__", lbl);
+    asm_add_global_var(gen, new_str_lbl, SIZE_8bit, 1);
+    ASMSymbol *val_symbol = get_bss_symbol(new_str_lbl);
+    val_symbol->value = (ASMSymbolValue)str;
+    val_symbol->symbol_type = ASM_SYMBOL_STR;
+    return new_str_lbl;
+}
+
 Register asm_get_global_var(CodeGenerator_t *gen, char *var_name)
 {
     Register r = allocate_register();
-    bss_symbol *symbol = get_bss_symbol(var_name);
+    ASMSymbol *symbol = get_bss_symbol(var_name);
     if (symbol == NULL)
     {
         debug_print(SEV_ERROR, "[ASM] Symbol is not defined before!!");
@@ -273,14 +324,24 @@ Register asm_get_global_var(CodeGenerator_t *gen, char *var_name)
     // TODO: Check we need this xor command ??!!
     fprintf(gen->file, "\txor %s, %s\n", reg_list[r], reg_list[r]);
 
-    if (symbol->size == SIZE_64bit)
-        fprintf(gen->file, "\tmov %s, [%s]\n", reg_list[r], var_name);
-    else if (symbol->size == SIZE_32bit)
-        fprintf(gen->file, "\tmov %s, [%s]\n", dreg_list[r], var_name);
-    else if (symbol->size == SIZE_16bit)
-        fprintf(gen->file, "\tmov %s, [%s]\n", wreg_list[r], var_name);
-    else if (symbol->size == SIZE_8bit)
-        fprintf(gen->file, "\tmov %s, [%s]\n", breg_list[r], var_name);
+    switch (symbol->symbol_type)
+    {
+    case ASM_SYMBOL_INT:
+    case ASM_SYMBOL_UNINTIALIZED:
+        if (symbol->size == SIZE_64bit)
+            fprintf(gen->file, "\tmov %s, [%s]\n", reg_list[r], var_name);
+        else if (symbol->size == SIZE_32bit)
+            fprintf(gen->file, "\tmov %s, [%s]\n", dreg_list[r], var_name);
+        else if (symbol->size == SIZE_16bit)
+            fprintf(gen->file, "\tmov %s, [%s]\n", wreg_list[r], var_name);
+        else if (symbol->size == SIZE_8bit)
+            fprintf(gen->file, "\tmov %s, [%s]\n", breg_list[r], var_name);
+        break;
+    case ASM_SYMBOL_STR:
+        fprintf(gen->file, "\tlea %s, [%s]\n", reg_list[r], var_name);
+        break;
+    }
+
     return r;
 }
 

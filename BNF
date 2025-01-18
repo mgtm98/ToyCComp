@@ -83,6 +83,7 @@ lvalue: dref_expression
 dref_expression: '*'+ val
 
 val: number
+   | string
    | identifier
    | '(' expression ')'
    | func_call_expression
@@ -91,6 +92,9 @@ val: number
    ;
 
 number: INTLIT
+      ;
+
+string: STRLIT
       ;
 
 identifier: IDENTIFIER

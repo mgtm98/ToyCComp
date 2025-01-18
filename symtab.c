@@ -75,4 +75,22 @@ void symtab_init_global_symtab()
     argument->arg_name = "x";
     argument->arg_type = DATATYPE_LONG;
     LList_SymbolFuncArg_append(&((SymbolFunc_t *)symtab_get_symbol(lib_print))->args, argument);
+
+    lib_print = symtab_add_global_symbol("print_char", SYMBOL_FUNC, DATATYPE_VOID);
+    argument = (SymbolFuncArg_t *)malloc(sizeof(SymbolFuncArg_t));
+    argument->arg_name = "x";
+    argument->arg_type = DATATYPE_CHAR;
+    LList_SymbolFuncArg_append(&((SymbolFunc_t *)symtab_get_symbol(lib_print))->args, argument);
+
+    lib_print = symtab_add_global_symbol("print_str", SYMBOL_FUNC, DATATYPE_VOID);
+    argument = (SymbolFuncArg_t *)malloc(sizeof(SymbolFuncArg_t));
+    argument->arg_name = "x";
+    argument->arg_type = datatype_get_pointer_of(DATATYPE_CHAR);
+    LList_SymbolFuncArg_append(&((SymbolFunc_t *)symtab_get_symbol(lib_print))->args, argument);
+
+    lib_print = symtab_add_global_symbol("print_ln", SYMBOL_FUNC, DATATYPE_VOID);
+    argument = (SymbolFuncArg_t *)malloc(sizeof(SymbolFuncArg_t));
+    argument->arg_name = "x";
+    argument->arg_type = datatype_get_pointer_of(DATATYPE_CHAR);
+    LList_SymbolFuncArg_append(&((SymbolFunc_t *)symtab_get_symbol(lib_print))->args, argument);
 }

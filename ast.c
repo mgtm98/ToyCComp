@@ -4,7 +4,7 @@
 
 #include <stdlib.h>
 
-ASTNode_t *ast_create_node(ASTNode_type_e type, ASTNode_t *left, ASTNode_t *right, int value)
+ASTNode_t *ast_create_node(ASTNode_type_e type, ASTNode_t *left, ASTNode_t *right, ASTNodeValue value)
 {
     ASTNode_t *node = (ASTNode_t *)malloc(sizeof(ASTNode_t));
     if (node == NULL)
@@ -37,7 +37,7 @@ ASTNode_t *ast_create_node(ASTNode_type_e type, ASTNode_t *left, ASTNode_t *righ
     return node;
 }
 
-ASTNode_t *ast_create_leaf_node(ASTNode_type_e type, int value)
+ASTNode_t *ast_create_leaf_node(ASTNode_type_e type, ASTNodeValue value)
 {
     return ast_create_node(type, NULL, NULL, value);
 }

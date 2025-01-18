@@ -119,7 +119,7 @@ static ASTNode_t *decl_function(Scanner_t *scanner)
         AST_FUNC_DECL,
         stmts,
         NULL,
-        symbol_index);
+        (ASTNodeValue)symbol_index);
     func->expr_type = return_type;
     return func;
 }
@@ -145,7 +145,7 @@ ASTNode_t *decl_var(Scanner_t *scanner)
             SYMBOL_VAR,
             var_type);
 
-        current_var = ast_create_leaf_node(AST_VAR_DECL, symbol_index);
+        current_var = ast_create_leaf_node(AST_VAR_DECL, (ASTNodeValue)symbol_index);
         current_var->expr_type = var_type;
 
         if (var_list_head == NULL)

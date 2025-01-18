@@ -62,7 +62,7 @@ static void ast_print_recursive(ASTNode_t *node, int depth, int is_last)
 
         printf("%s", NodeToString(*node));
         if (node->type == AST_INT_LIT)
-            printf(": %d", node->value);
+            printf(": %d", node->value.num);
         printf("\n");
 
         if (node->left || node->right)

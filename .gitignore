@@ -6,3 +6,4 @@ ToyCComp
 results
 failed_tests.log
 test_summary.log
+tests/debug.c

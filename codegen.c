@@ -152,11 +152,14 @@ static Register generate_expr_arithmetic(CodeGenerator_t *gen, ASTNode_t *root)
     case AST_DIV:
         return asm_div(gen, left, right);
     case AST_INT_LIT:
-        return asm_init_register(gen, root->value);
+        return asm_init_register(gen, root->value.num);
+    case AST_STR_LIT:
+        return asm_address_of(gen, asm_generate_string_lit(gen, root->value.str));
+
     case AST_VAR:
-        return asm_get_global_var(gen, symtab_get_symbol(root->value)->sym_name);
+        return asm_get_global_var(gen, symtab_get_symbol(root->value.num)->sym_name);
     case AST_OFFSET_SCALE:
-        Register offset = asm_init_register(gen, root->value);
+        Register offset = asm_init_register(gen, root->value.num);
         return asm_mul(gen, left, offset);
     case AST_PTRDREF:
         if (root->expr_type->pointer_level > 0)
@@ -189,14 +192,14 @@ static Register generate_expr_fcall(CodeGenerator_t *gen, ASTNode_t *root)
 
     return asm_generate_func_call(
         gen,
-        symtab_get_symbol(root->value)->sym_name,
+        symtab_get_symbol(root->value.num)->sym_name,
         expr,
         true);
 }
 
 static Register generate_expr_addressof(CodeGenerator_t *gen, ASTNode_t *root)
 {
-    return asm_address_of(gen, symtab_get_symbol(root->left->value)->sym_name);
+    return asm_address_of(gen, symtab_get_symbol(root->left->value.num)->sym_name);
 }
 
 static Register generate_expr_ptrdref(CodeGenerator_t *gen, ASTNode_t *root)
@@ -213,8 +216,8 @@ static Register generate_expr_arr_index(CodeGenerator_t *gen, ASTNode_t *root)
     Register index, base_address;
 
     index = generate_expr(gen, root->right);
-    asm_sll(gen, index, (int)log2(root->value / 8));
-    base_address = asm_address_of(gen, symtab_get_symbol(root->left->value)->sym_name);
+    asm_sll(gen, index, (int)log2(root->value.num / 8));
+    base_address = asm_address_of(gen, symtab_get_symbol(root->left->value.num)->sym_name);
     return asm_add(gen, base_address, index);
 }
 
@@ -269,7 +272,7 @@ static void generate_statement(CodeGenerator_t *gen, ASTNode_t *root)
 static void generate_decl_var(CodeGenerator_t *gen, ASTNode_t *root)
 {
     // TODO check if the variable has initial value
-    Symbol_t *symbol = symtab_get_symbol(root->value);
+    Symbol_t *symbol = symtab_get_symbol(root->value.num);
     asm_add_global_var(
         gen,
         symbol->sym_name,
@@ -277,8 +280,27 @@ static void generate_decl_var(CodeGenerator_t *gen, ASTNode_t *root)
         symbol->data_type->array_size);
     if (root->left)
     {
-        Register value = generate_expr(gen, root->left);
-        asm_set_global_var(gen, symtab_get_symbol(root->value)->sym_name, value);
+        if (root->left->type == AST_INT_LIT)
+        {
+            asm_set_global_var_initial_val(
+                gen,
+                symtab_get_symbol(root->value.num)->sym_name,
+                (ASMSymbolValue)root->left->value.num,
+                ASM_SYMBOL_INT);
+        }
+        else if (root->left->type == AST_STR_LIT)
+        {
+            asm_set_global_var_initial_val(
+                gen,
+                symtab_get_symbol(root->value.num)->sym_name,
+                (ASMSymbolValue)root->left->value.str,
+                ASM_SYMBOL_STR);
+        }
+        else
+        {
+            Register value = generate_expr(gen, root->left);
+            asm_set_global_var(gen, symtab_get_symbol(root->value.num)->sym_name, value);
+        }
     }
 }
 
@@ -309,7 +331,7 @@ static void generate_stmt_while(CodeGenerator_t *gen, ASTNode_t *root)
 
     // Save the end label as the value of the node. This will be used
     // by the break statement
-    root->value = end_label;
+    root->value.num = end_label;
 
     asm_lbl(gen, start_label);
     comp = generate_expr(gen, root->left);
@@ -325,7 +347,7 @@ static void generate_stmt_do_while(CodeGenerator_t *gen, ASTNode_t *root)
     LabelId start_label = asm_generate_label();
     LabelId end_label = asm_generate_label();
 
-    root->value = end_label;
+    root->value.num = end_label;
     asm_lbl(gen, start_label);
     generate_statements(gen, root->right);
     comp = generate_expr(gen, root->left);
@@ -342,7 +364,7 @@ static void generate_stmt_for(CodeGenerator_t *gen, ASTNode_t *root)
     LabelId start_label = asm_generate_label();
     LabelId end_label = asm_generate_label();
 
-    root->value = end_label;
+    root->value.num = end_label;
 
     generate_statement(gen, init);
     asm_lbl(gen, start_label);
@@ -363,7 +385,7 @@ static void generate_stmt_break(CodeGenerator_t *gen, ASTNode_t *root)
         debug_print(SEV_ERROR, "[CG] break statement was called outside a loop context");
         exit(1);
     }
-    asm_jmp(gen, (LabelId)loop_node->value);
+    asm_jmp(gen, (LabelId)loop_node->value.num);
 }
 
 static void generate_stmt_assign(CodeGenerator_t *gen, ASTNode_t *root)
@@ -374,7 +396,7 @@ static void generate_stmt_assign(CodeGenerator_t *gen, ASTNode_t *root)
     switch (root->left->type)
     {
     case AST_VAR:
-        symbol = symtab_get_symbol(root->left->value);
+        symbol = symtab_get_symbol(root->left->value.num);
         asm_set_global_var(gen, symbol->sym_name, i);
         break;
 
@@ -398,7 +420,7 @@ static void generate_stmt_assign(CodeGenerator_t *gen, ASTNode_t *root)
 static void generate_stmt_return(CodeGenerator_t *gen, ASTNode_t *root)
 {
     Register i = generate_expr(gen, root->left);
-    asm_generate_func_return(gen, i, symtab_get_symbol(root->value)->data_type->size);
+    asm_generate_func_return(gen, i, symtab_get_symbol(root->value.num)->data_type->size);
     return_called_flag = true;
 }
 
@@ -410,7 +432,7 @@ static void generate_stmt_fcall(CodeGenerator_t *gen, ASTNode_t *root)
 
     asm_generate_func_call(
         gen,
-        symtab_get_symbol(root->value)->sym_name,
+        symtab_get_symbol(root->value.num)->sym_name,
         expr,
         false);
 }
@@ -443,7 +465,7 @@ static void generate_decleration(CodeGenerator_t *gen, ASTNode_t *root)
 static void generate_decl_func(CodeGenerator_t *gen, ASTNode_t *root)
 {
     return_called_flag = false;
-    asm_generate_function_prologue(gen, symtab_get_symbol(root->value)->sym_name);
+    asm_generate_function_prologue(gen, symtab_get_symbol(root->value.num)->sym_name);
     generate_statements(gen, root->left);
     if (!return_called_flag)
     {

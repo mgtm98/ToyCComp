@@ -86,6 +86,61 @@ static int scan_number(Scanner_t *scanner)
     return out;
 }
 
+static char scan_char(Scanner_t *scanner)
+{
+    char c;
+    c = next(scanner);
+    if (c == '\\')
+    {
+        switch (c = next(scanner))
+        {
+        case 'a':
+            return '\a';
+        case 'b':
+            return '\b';
+        case 'f':
+            return '\f';
+        case 'n':
+            return '\n';
+        case 'r':
+            return '\r';
+        case 't':
+            return '\t';
+        case 'v':
+            return '\v';
+        case '\\':
+            return '\\';
+        case '"':
+            return '"';
+        case '\'':
+            return '\'';
+        default:
+            debug_print(SEV_ERROR, "unknown escape sequence", c);
+        }
+    }
+    return (c);
+}
+
+static char *scan_str(Scanner_t *scanner)
+{
+    char *buff = malloc(1000 * sizeof(char));
+    int index = 0;
+    int buffer_size = 999;
+    char i;
+
+    next(scanner);
+    while (true)
+    {
+        i = scan_char(scanner);
+        if (i == '\"')
+            break;
+        buff[index] = i;
+        index++;
+    }
+    buff[index] = '\0';
+    return buff;
+}
+
 static char *scan_id(Scanner_t *scanner)
 {
     char c;
@@ -261,6 +316,16 @@ static bool __scanner_scan(Scanner_t *scanner, Token_t *tok, bool ignore_cache)
             exit(1);
         }
         break;
+    case '\'':
+        tok->value.int_value = scan_char(scanner);
+        tok->type = TOK_INTLIT;
+        t = next(scanner);
+        if (t != '\'')
+        {
+            debug_print(SEV_ERROR, "Unmatched \"\'\"");
+            exit(1);
+        }
+        break;
     default:
         if (isdigit(t))
         {
@@ -273,6 +338,12 @@ static bool __scanner_scan(Scanner_t *scanner, Token_t *tok, bool ignore_cache)
             scanner->putback_char = t;
             tok->value.str_value = scan_id(scanner);
             tok->type = check_keyword(tok->value.str_value);
+        }
+        else if (t == '\"')
+        {
+            scanner->putback_char = t;
+            tok->value.str_value = scan_str(scanner);
+            tok->type = TOK_STRLIT;
         }
         else
         {

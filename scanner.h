@@ -25,6 +25,7 @@ typedef enum
     TOK_AMPER, /** '&' */
 
     TOK_INTLIT, /** Integer literal. */
+    TOK_STRLIT, /** String literal. */
     TOK_ID,     /** Identifier. */
 
     TOK_INT,  /** 'int' keyword. */
@@ -78,6 +79,7 @@ static char *__token_names[] = {
     "TOK_NE",
     "TOK_AMPER",
     "TOK_INTLIT",
+    "TOK_STRLIT",
     "TOK_ID",
     "TOK_INT",
     "TOK_CHAR",

@@ -72,7 +72,7 @@ static ASTNode_t *stmt_statement(Scanner_t *scanner)
         scanner_match(scanner, TOK_SEMICOLON);
         return ast_create_leaf_node(
             AST_EMPTY,
-            0);
+            (ASTNodeValue)0);
 
     // local declarations using primatives
     default:
@@ -87,7 +87,7 @@ static ASTNode_t *stmt_print(Scanner_t *scanner)
     ASTNode_t *expr = expr_expression(scanner);
     scanner_match(scanner, TOK_RPAREN);
     scanner_match(scanner, TOK_SEMICOLON);
-    return ast_create_node(AST_PRINT, expr, NULL, 0);
+    return ast_create_node(AST_PRINT, expr, NULL, (ASTNodeValue)0);
 }
 
 static ASTNode_t *stmt_var_decl(Scanner_t *scanner)
@@ -118,8 +118,8 @@ static ASTNode_t *stmt_if(Scanner_t *scanner)
                 AST_GLUE,
                 true_code,
                 NULL,
-                0),
-            0);
+                (ASTNodeValue)0),
+            (ASTNodeValue)0);
     }
     scanner_match(scanner, TOK_ELSE);
     scanner_peek(scanner, &tok);
@@ -139,8 +139,8 @@ static ASTNode_t *stmt_if(Scanner_t *scanner)
             AST_GLUE,
             true_code,
             false_code,
-            0),
-        0);
+            (ASTNodeValue)0),
+        (ASTNodeValue)0);
 }
 
 static ASTNode_t *stmt_while(Scanner_t *scanner)
@@ -160,7 +160,7 @@ static ASTNode_t *stmt_while(Scanner_t *scanner)
         AST_WHILE,
         expr,
         code,
-        0);
+        (ASTNodeValue)0);
 }
 
 static ASTNode_t *stmt_do_while(Scanner_t *scanner)
@@ -182,7 +182,7 @@ static ASTNode_t *stmt_do_while(Scanner_t *scanner)
         AST_DO_WHILE,
         expr,
         code,
-        0);
+        (ASTNodeValue)0);
 }
 
 static ASTNode_t *stmt_for(Scanner_t *scanner)
@@ -200,7 +200,7 @@ static ASTNode_t *stmt_for(Scanner_t *scanner)
     if (tok.type == TOK_RPAREN)
     {
         scanner_scan(scanner, &tok);
-        pre_post->next->next = ast_create_leaf_node(AST_EMPTY, 0);
+        pre_post->next->next = ast_create_leaf_node(AST_EMPTY, (ASTNodeValue)0);
     }
     else
     {
@@ -214,7 +214,7 @@ static ASTNode_t *stmt_for(Scanner_t *scanner)
         AST_FOR,
         pre_post,
         code,
-        0);
+        (ASTNodeValue)0);
 }
 
 static ASTNode_t *stmt_break(Scanner_t *scanner)
@@ -226,7 +226,7 @@ static ASTNode_t *stmt_break(Scanner_t *scanner)
     }
     scanner_match(scanner, TOK_BREAK);
     scanner_match(scanner, TOK_SEMICOLON);
-    return ast_create_leaf_node(AST_BREAK, 0);
+    return ast_create_leaf_node(AST_BREAK, (ASTNodeValue)0);
 }
 
 static ASTNode_t *stmt_return(Scanner_t *scanner)
@@ -247,7 +247,7 @@ static ASTNode_t *stmt_return(Scanner_t *scanner)
             exit(1);
         }
         scanner_match(scanner, TOK_SEMICOLON);
-        return_stmt = ast_create_leaf_node(AST_RETURN, decl_current_func);
+        return_stmt = ast_create_leaf_node(AST_RETURN, (ASTNodeValue)decl_current_func);
         return_stmt->expr_type = DATATYPE_VOID;
         return return_stmt;
     }
@@ -260,7 +260,7 @@ static ASTNode_t *stmt_return(Scanner_t *scanner)
             AST_RETURN,
             expr,
             NULL,
-            decl_current_func);
+            (ASTNodeValue)decl_current_func);
         return_stmt->expr_type = expr->expr_type;
         return return_stmt;
     }
