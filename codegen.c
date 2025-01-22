@@ -369,7 +369,20 @@ static void generate_stmt_for(CodeGenerator_t *gen, ASTNode_t *root)
     generate_statement(gen, init);
     asm_lbl(gen, start_label);
     comp = generate_expr(gen, cond);
-    asm_jmp_ne(gen, comp, 1, end_label);
+    if (
+        cond->type == AST_COMP_EQ ||
+        cond->type == AST_COMP_NE ||
+        cond->type == AST_COMP_GT ||
+        cond->type == AST_COMP_GE ||
+        cond->type == AST_COMP_LT ||
+        cond->type == AST_COMP_LE)
+    {
+        asm_jmp_ne(gen, comp, 1, end_label);
+    }
+    else
+    {
+        asm_jmp_eq(gen, comp, 0, end_label);
+    }
     generate_statements(gen, root->right);
     generate_statement(gen, update);
     asm_jmp(gen, start_label);
